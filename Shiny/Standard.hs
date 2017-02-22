@@ -94,7 +94,9 @@ stdFuncs = fromList [
             (Var "foldl", func foldlExpr),
             (Var "fl", func foldlExpr),
             (Var "foldr", func foldrExpr),
-            (Var "fr", func foldrExpr)
+            (Var "fr", func foldrExpr),
+            (Var "join", func joinExpr),
+            (Var "jn", func joinExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -575,3 +577,16 @@ foldrExpr [xs] = pure . Number . product . map coerceToNumber $ coerceToList xs
 foldrExpr (f:ys) = case init ys ++ coerceToList (last ys) of
                      [] -> return Nil
                      xs -> foldrM (\x y -> functionCall f [x, y]) (last xs) (init xs)
+
+{-
+ - (join) - ((join) x y z) = (list x x y y z z)
+ - (join f) - ((join f) x y z) = (f x x y y z z)
+ - (join f x ... y) - ((join f) x ... y)
+ - (jn) == (join)
+ -}
+joinExpr :: [Expr] -> Symbols Expr Expr
+joinExpr [] = let t xs = pure . exprFromList . concatMap (\x -> [x, x]) $ xs
+              in pure . BuiltIn $ Func t
+joinExpr [f] = let t xs = functionCall f $ concatMap (\x -> [x, x]) xs
+               in pure . BuiltIn $ Func t
+joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
