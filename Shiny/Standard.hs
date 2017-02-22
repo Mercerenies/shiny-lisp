@@ -110,8 +110,8 @@ standardState = [standard]
 --
 
 {-
- - (=) No-op (might change in the future)
- - (= x) Set the variable x equal to nil; returns nil (might be changed to set some preset (#) to x)
+ - (=) No-op (TODO Something?)
+ - (= x) Set the variable x equal to nil; returns nil (TODO should this act like (= # x)?)
  - (= x y) Set x equal to y (y is evaluated); returns y
  - (= x1 .. xn y) Set x1, x2, ... xn equal to y (y is evaluated once); returns y
  - In any case, any variable xi's which are not atoms are ignored
@@ -186,8 +186,8 @@ times xs = do
   return . Number . getProduct $ foldMap (Product . coerceToNumber) xs
 
 {-
- - (/) - Ten (may become 1/2 in the future)
- - (/ x) - Return 0 (to be reciprocal in the future)
+ - (/) - Ten (TODO may become 1/2 in the future)
+ - (/ x) - Return 0 (TODO to be reciprocal in the future)
  - (/ x y . any) - Divide latter elements from the first
  - Division by zero yields the divisor
  -}
@@ -219,7 +219,7 @@ ifStmt (x:y:xs) = do
 
 {-
  - (==) - Returns 100
- - (== x) - Returns 1000 (without evaluating x)
+ - (== x) - Returns 1000
  - (== x y . any) - Returns 1 if all expressions (all evaluated) are equal, 0 otherwise
  -}
 equality :: [Expr] -> Symbols Expr Expr
@@ -319,9 +319,9 @@ dropExpr xs = do
   return . exprFromList $ map (flip consDrop lst) nums
 
 {-
- - (apply) - Returns the lowercase alphabet as a string (to be changed)
+ - (apply) - Returns the lowercase alphabet as a string (TODO to be changed)
  - (apply f) - Applies the function to itself
- - (apply f x y ... xs) - Applies the function to the arglist (all evaluated)
+ - (apply f x y ... xs) - Applies the function to the arglist
  - (ap) is an abbreviation for (apply)
  -}
 applyExpr :: [Expr] -> Symbols Expr Expr
@@ -453,7 +453,7 @@ xorExpr [x] = pure . Number . complement $ coerceToNumber x
 xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
 
 {-
- - (boolnorm) - 0 (to be changed)
+ - (boolnorm) - 0 (TODO to be changed)
  - (boolnorm x) - The value x, normalized to boolean (so 0 or 1)
  - (boolnorm x ... y) - Each value normalized, put into a list
  - (bn) == (boolnorm)
