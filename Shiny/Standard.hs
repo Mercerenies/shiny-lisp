@@ -3,8 +3,10 @@ module Shiny.Standard(standard, standardState) where
 
 import Data.Map(fromList, union)
 import Data.Monoid
+import Data.Foldable
 import Data.List hiding (union)
 import Data.Bits
+import Data.Function
 import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
@@ -12,6 +14,7 @@ import Shiny.Structure
 import Shiny.Symbol
 import Shiny.Eval
 import Shiny.Vars
+import Shiny.Util
 
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
@@ -39,7 +42,9 @@ stdFuncs = fromList [
             (Var "i", func' ifStmt),
             (Var "==", func equality),
             (Var "sq", func sequenceExpr),
+            (Var "take", func takeExpr),
             (Var "tk", func takeExpr),
+            (Var "drop", func dropExpr),
             (Var "dp", func dropExpr),
             (Var "apply", func applyExpr),
             (Var "ap", func applyExpr),
@@ -75,7 +80,21 @@ stdFuncs = fromList [
             (Var "bitxor", func xorExpr),
             (Var "b%", func xorExpr),
             (Var "boolnorm", func boolNorm),
-            (Var "bn", func boolNorm)
+            (Var "bn", func boolNorm),
+            (Var "hook", func hook),
+            (Var "hk", func hook),
+            (Var "id", func idFunc),
+            (Var "d", func idFunc),
+            (Var "compose", func compose),
+            (Var ",", func compose),
+            (Var "sort", func sortExpr),
+            (Var "st", func sortExpr),
+            (Var "divides", func divides),
+            (Var "//", func divides),
+            (Var "foldl", func foldlExpr),
+            (Var "fl", func foldlExpr),
+            (Var "foldr", func foldrExpr),
+            (Var "fr", func foldrExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -268,10 +287,11 @@ listCdr (Cons _ x) = x
 listCdr z = z
 
 {-
- - (tk) - Returns 10,000
- - (tk xs) - Returns the first element of xs (or xs itself, if not a cons)
- - (tk n xs) - Returns the first n elements of xs (n is coerced to integer)
- - {tk n m ... xs) - Returns the first n elements, then the next m, then ... in a list of lists
+ - (take) - Returns 10,000
+ - (take xs) - Returns the first element of xs (or xs itself, if not a cons)
+ - (take n xs) - Returns the first n elements of xs (n is coerced to integer)
+ - {take n m ... xs) - Returns the first n elements, then the next m, then ... in a list of lists
+ - (tk) == (take)
  - Example of that last one: (tk 2 3 2 '(1 2 3 4 5 6 7 8 9)) => '((1 2) (3 4 5) (6 7))
  -}
 takeExpr :: [Expr] -> Symbols Expr Expr
@@ -283,10 +303,11 @@ takeExpr xs = do
   return . exprFromList . snd $ mapAccumL (\acc n -> (consDrop n acc, consTake n acc)) lst nums
 
 {-
- - (dp) - Returns 2,048
- - (dp xs) - Drops the first element of xs (returns xs if not a cons)
- - (dp n xs) - Drops the first n elements of xs (n is coerced to integer)
- - {dp n m ... xs) - Drops the first n elements, then the next m, then ... in a list of lists
+ - (drop) - Returns 2,048
+ - (drop xs) - Drops the first element of xs (returns xs if not a cons)
+ - (drop n xs) - Drops the first n elements of xs (n is coerced to integer)
+ - {drop n m ... xs) - Drops the first n elements, then the next m, then ... in a list of lists
+ - (dp) == (drop)
  - Example of that last one: (dp 2 3 2 '(1 2 3 4)) => '((3 4) (2 3 4) (3 4))
  -}
 dropExpr :: [Expr] -> Symbols Expr Expr
@@ -441,3 +462,116 @@ boolNorm :: [Expr] -> Symbols Expr Expr
 boolNorm [] = pure $ Number 0
 boolNorm [x] = pure . Number $ if coerceToBool x then 1 else 0
 boolNorm xs = exprFromList <$> mapM (boolNorm . return) xs
+
+{-
+ - (hook) - ((hook) x y z) = (list z y x)
+ - (hook f) - ((hook f) x y z) = (f z y x)
+ - (hook f g) - ((hook f g) x y z) = (f (g x) (g y) (g z))
+ - (hook f g ... h) - ((hook f g g1 ... gn) x y ... z) = (f (g x) (g1 y) ... (gn z)) ; (Uses shorter of two lists)
+ - (hk) == (hook)
+ -}
+hook :: [Expr] -> Symbols Expr Expr
+hook [] = let t xs = pure . exprFromList $ reverse xs
+          in pure . BuiltIn $ Func t
+hook [f] = let t xs = functionCall f $ reverse xs
+           in pure . BuiltIn $ Func t
+hook [f, g] = let t xs = mapM (functionCall g . pure) xs >>= functionCall f
+              in pure $ func t
+hook (f:gs) = let t xs = zipWithM (\g x -> functionCall g $ pure x) gs xs >>= functionCall f
+              in pure $ func t
+
+{-
+ - (id) - Returns nil
+ - (id x) - Returns x
+ - (id x y ... z) - Returns x
+ - (d) == (id)
+ -}
+idFunc :: [Expr] -> Symbols Expr Expr
+idFunc [] = pure Nil
+idFunc (x:_) = pure x
+
+{-
+ - (compose) - The identity function
+ - (compose . fs) - Compose the functions, right-to-left; ((compose f g) x) is (f (g x))
+ - (,) == (compose)
+ -}
+compose :: [Expr] -> Symbols Expr Expr
+compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFunc
+
+{-
+ - (sort) - Returns the list (1..10)
+ - (sort xs) - Sorts the list of numbers
+ - (sort f xs) - Using the given <= comparator, sort the list
+ - (sort f x y ... z) - Returns a list containing the given elements, sorted
+ - (st) = (sort)
+ - IMPORTANT NOTE: The sorting function should not carry side effects; it will be called an unspecified number
+ -                 of times.
+ -}
+sortExpr :: [Expr] -> Symbols Expr Expr
+sortExpr [] = pure $ exprFromList (Number <$> [1..10])
+sortExpr [xs] = pure . exprFromList . sortBy (compare `on` coerceToNumber) . coerceToList $ xs
+sortExpr [f, xs] = exprFromList <$> sortByM ord (coerceToList xs)
+    where ord x y = do
+            le <- coerceToBool <$> functionCall f [x, y]
+            ge <- coerceToBool <$> functionCall f [y, x]
+            pure $ case (le, ge) of
+                     (True, True) -> EQ
+                     (True, False) -> LT
+                     (False, True) -> GT
+                     (False, False) -> EQ -- Chosen arbitrarily
+sortExpr (f:xs) = sortExpr [f, exprFromList xs]
+
+{-
+ - (divides) - Returns -100
+ - (divides x) - Returns whether x is a power of 10
+ - (divides x y z ... t) - Returns whether x | y and y | z and z | ... | t
+ - (//) == (divides)
+ - Division by zero always results in a false expression
+ -}
+divides :: [Expr] -> Symbols Expr Expr
+divides [] = pure $ Number (-100)
+divides [x] = let check 0 = False
+                  check 1 = True
+                  check n = check $ n `div` 10
+              in pure . Number $ if check . coerceToNumber $ x then 1 else 0
+divides [x, y] = let x' = coerceToNumber x
+                     y' = coerceToNumber y
+                 in case () of
+                      _ | x' == 0 -> pure (Number 0)
+                        | (y' `div` x') * x' == y' -> pure (Number 1)
+                        | otherwise -> pure (Number 0)
+divides (x:y:xs) = do
+  a1 <- divides [x, y]
+  a2 <- divides (y:xs)
+  if coerceToBool a1 && coerceToBool a2 then
+      return $ Number 1
+  else
+      return $ Number 0
+
+{-
+ - (foldl) - Returns 1,000,000
+ - (foldl xs) - Sums the list
+ - (foldl f x ... y xs) - Perform binary operation f on the list (x ... y . xs)
+ - (fl) == (foldl)
+ - In the third case, if the list is empty and no extra arguments are supplied, returns nil
+ -}
+foldlExpr :: [Expr] -> Symbols Expr Expr
+foldlExpr [] = pure $ Number 1000000
+foldlExpr [xs] = pure . Number . sum . map coerceToNumber $ coerceToList xs
+foldlExpr (f:ys) = case init ys ++ coerceToList (last ys) of
+                     [] -> return Nil
+                     xs -> foldlM (\x y -> functionCall f [x, y]) (head xs) (tail xs)
+
+{-
+ - (foldr) - Returns -1,000,000
+ - (foldr xs) - Products the list
+ - (foldr f x ... y xs) - Perform binary operation f on the list (x ... y . xs)
+ - (fr) == (foldr)
+ - In the third case, if the list is empty and no extra arguments are supplied, returns nil
+ -}
+foldrExpr :: [Expr] -> Symbols Expr Expr
+foldrExpr [] = pure $ Number (-1000000)
+foldrExpr [xs] = pure . Number . product . map coerceToNumber $ coerceToList xs
+foldrExpr (f:ys) = case init ys ++ coerceToList (last ys) of
+                     [] -> return Nil
+                     xs -> foldrM (\x y -> functionCall f [x, y]) (last xs) (init xs)
