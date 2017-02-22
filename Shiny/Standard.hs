@@ -73,7 +73,9 @@ stdFuncs = fromList [
             (Var "bitor", func orExpr),
             (Var "b\\", func orExpr),
             (Var "bitxor", func xorExpr),
-            (Var "b%", func xorExpr)
+            (Var "b%", func xorExpr),
+            (Var "boolnorm", func boolNorm),
+            (Var "bn", func boolNorm)
            ]
 
 stdValues :: SymbolTable Expr
@@ -199,7 +201,7 @@ ifStmt (x:y:xs) = do
 {-
  - (==) - Returns 100
  - (== x) - Returns 1000 (without evaluating x)
- - (== x y . any) - Returns 1 if all expressions (all evaluated) are equal, Nil otherwise
+ - (== x y . any) - Returns 1 if all expressions (all evaluated) are equal, 0 otherwise
  -}
 equality :: [Expr] -> Symbols Expr Expr
 equality [] = pure $ Number 100
@@ -208,7 +210,7 @@ equality xs = do
   if all (uncurry eql) $ pairs xs then
       return $ Number 1
   else
-      return Nil
+      return $ Number 0
 
 pairs :: [a] -> [(a, a)]
 pairs [] = []
@@ -417,6 +419,7 @@ andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map coerceToNumber
  -}
 orExpr :: [Expr] -> Symbols Expr Expr
 orExpr = pure . Number . foldr (.|.) zeroBits . map coerceToNumber
+
 {-
  - (bitxor) - 256
  - (bitxor x) - Complement
@@ -427,3 +430,14 @@ xorExpr :: [Expr] -> Symbols Expr Expr
 xorExpr [] = pure $ Number 256
 xorExpr [x] = pure . Number . complement $ coerceToNumber x
 xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
+
+{-
+ - (boolnorm) - 0 (to be changed)
+ - (boolnorm x) - The value x, normalized to boolean (so 0 or 1)
+ - (boolnorm x ... y) - Each value normalized, put into a list
+ - (bn) == (boolnorm)
+ -}
+boolNorm :: [Expr] -> Symbols Expr Expr
+boolNorm [] = pure $ Number 0
+boolNorm [x] = pure . Number $ if coerceToBool x then 1 else 0
+boolNorm xs = exprFromList <$> mapM (boolNorm . return) xs
