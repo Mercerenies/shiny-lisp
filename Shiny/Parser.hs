@@ -17,7 +17,7 @@ readExpr' :: String -> Either ParseError [Expr]
 readExpr' = parse (exprs <* eof) "(eval)"
 
 exprs :: Parser [Expr]
-exprs = concat <$> (spaces *> sepBy listContents spaces <* spaces)
+exprs = concat <$> (spaces *> many (listContents <* spaces))
 
 expr :: Parser Expr
 expr = list <|> quoted <|> exprFromList <$> upperChain

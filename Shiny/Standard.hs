@@ -453,13 +453,13 @@ xorExpr [x] = pure . Number . complement $ coerceToNumber x
 xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
 
 {-
- - (boolnorm) - 0 (TODO to be changed)
+ - (boolnorm) - 999
  - (boolnorm x) - The value x, normalized to boolean (so 0 or 1)
  - (boolnorm x ... y) - Each value normalized, put into a list
  - (bn) == (boolnorm)
  -}
 boolNorm :: [Expr] -> Symbols Expr Expr
-boolNorm [] = pure $ Number 0
+boolNorm [] = pure $ Number 999
 boolNorm [x] = pure . Number $ if coerceToBool x then 1 else 0
 boolNorm xs = exprFromList <$> mapM (boolNorm . return) xs
 
