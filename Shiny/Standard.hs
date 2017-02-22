@@ -245,30 +245,41 @@ sequential xs = Func helper
             n' <- coerceToNumber <$> evaluate n
             pure $ xs `genericIndex` n'
 
+sequential' :: [Expr] -> Func
+sequential' xs = Func helper
+    where helper [] = helper [Number 1]
+          helper (n:_) = do
+            n' <- coerceToNumber <$> evaluate n
+            pure . exprFromList $ genericTake n' xs
+
 {-
  - (sq) - Returns (sq 0)
  - (sq 0) - Returns the fibonacci sequence (0 1 1 2 3 ...)
  - (sq 1) - Returns the 2^n sequence (1 2 4 8 16 32 ...)
  - (sq 2) - Returns the identity sequence (0 1 2 3 4 5 ...)
  - (sq n) - Returns a 1-ary function which returns nil
- - (sq x . y) - Ignores anything past the first argument
+ - (sq x . y) - Behaves like (sq x) but returns a sequence of the form (sqg)
  - For a returned function (sqf)
  -   (sqf) - Returns (sqf 0)
- -   (sqf n . y) - Evaluates n, gets nth element of sequence, ignores y
+ -   (sqf n . y) - Gets nth element of sequence, ignores y
+ - For a returned function (sqg)
+ -   (sqg) - Returns (sqg 1)
+ -   (sqg n . y) - Returns the first n elements of the sequence
  -}
 sequenceExpr :: [Expr] -> Symbols Expr Expr
 sequenceExpr [] = sequenceExpr [Number 0]
-sequenceExpr (n:_) = do
+sequenceExpr (n:ss) = do
   let fibo x y = Number x : fibo y (x + y)
       twon = map Number $ iterate (2 *) 1
       base = map Number $ [0..]
       nada = repeat Nil
   let n' = coerceToNumber n
+      f = pure . BuiltIn . if null ss then sequential else sequential'
   case n' of
-    0 -> pure . BuiltIn . sequential $ fibo 0 1
-    1 -> pure . BuiltIn . sequential $ twon
-    2 -> pure . BuiltIn . sequential $ base
-    _ -> pure . BuiltIn . sequential $ nada
+    0 -> f $ fibo 0 1
+    1 -> f $ twon
+    2 -> f $ base
+    _ -> f $ nada
 
 consTake :: Integer -> Expr -> Expr
 consTake 0 _ = Nil
