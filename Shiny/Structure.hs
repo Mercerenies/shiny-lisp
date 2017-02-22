@@ -3,10 +3,11 @@ module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
                        func, func', exprToList, exprToList', exprFromList, prepend,
                        coerceToNumber, coerceToString, coerceToBool, coerceToList,
-                       eql) where
+                       eql, bindArgs) where
 
 import Shiny.Symbol
 import Shiny.Vars
+import Control.Monad
 import Data.Maybe
 
 newtype Func = Func { runFunc :: [Expr] -> Symbols Expr Expr }
@@ -115,3 +116,9 @@ eql (Atom s) (Atom s') = s == s'
 eql (String s) (String s') = s == s'
 eql (Number x) (Number x') = x == x'
 eql _ _ = False
+
+bindArgs :: [Expr] -> Symbols Expr ()
+bindArgs xs = do
+  forM_ (argumentBindings xs) $ \(v, e) -> do
+                defSymbol v e
+  defSymbol argListName $ exprFromList xs

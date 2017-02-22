@@ -3,7 +3,7 @@
 module Shiny.Symbol(SymbolTable, Symbols(..), throwS, catchS, runSymbols, runSymbols', emptyState,
                     hasSymbol, getSymbol, setSymbol, defSymbol,
                     getSymbolOrDefault, getSymbolDefining, globalDefSymbol, setOrDefSymbol,
-                    pushStack, popStack, bindArgs) where
+                    pushStack, popStack) where
 
 import Shiny.Vars
 import Control.Monad
@@ -100,7 +100,3 @@ popStack :: Symbols e (SymbolTable e)
 popStack = get >>= \ys -> case ys of
                             [] -> throwS "call stack is empty"
                             (x:xs) -> x <$ put xs
-
-bindArgs :: [e] -> Symbols e ()
-bindArgs xs = forM_ (argumentBindings xs) $ \(v, e) -> do
-                defSymbol v e
