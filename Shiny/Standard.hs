@@ -4,6 +4,7 @@ module Shiny.Standard(standard, standardState) where
 import Data.Map(fromList, union)
 import Data.Monoid
 import Data.List hiding (union)
+import Data.Bits
 import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
@@ -66,7 +67,13 @@ stdFuncs = fromList [
             (Var "rg", func rangeExpr),
             (Var "quit", func quitProg),
             (Var "cons", func consExpr),
-            (Var "c", func consExpr)
+            (Var "c", func consExpr),
+            (Var "bitand", func andExpr),
+            (Var "b&", func andExpr),
+            (Var "bitor", func orExpr),
+            (Var "b\\", func orExpr),
+            (Var "bitxor", func xorExpr),
+            (Var "b%", func xorExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -394,3 +401,29 @@ consExpr :: [Expr] -> Symbols Expr Expr
 consExpr [] = pure $ Cons Nil Nil
 consExpr [x] = pure x
 consExpr (x:xs) = Cons x <$> consExpr xs
+
+{-
+ - (bitand) - All one-bits
+ - (bitand x ...) - Bitwise and together
+ - (b&) == (bitand)
+ -}
+andExpr :: [Expr] -> Symbols Expr Expr
+andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map coerceToNumber
+
+{-
+ - (bitor) - All zero-bits
+ - (bitor x ...) - Bitwise or together
+ - (b\) = (bitor)
+ -}
+orExpr :: [Expr] -> Symbols Expr Expr
+orExpr = pure . Number . foldr (.|.) zeroBits . map coerceToNumber
+{-
+ - (bitxor) - 256
+ - (bitxor x) - Complement
+ - (bitxor x ...) - Bitwise xor together
+ - (b%) = (bitxor)
+ -}
+xorExpr :: [Expr] -> Symbols Expr Expr
+xorExpr [] = pure $ Number 256
+xorExpr [x] = pure . Number . complement $ coerceToNumber x
+xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
