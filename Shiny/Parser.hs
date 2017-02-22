@@ -32,7 +32,7 @@ doProgn :: Expr -> Expr
 doProgn = Cons (Atom "progn")
 
 stringLit :: Parser Expr
-stringLit = char '\"' *> (String <$> contents) <* char '\"'
+stringLit = char '\"' *> (String <$> rest) <* char '\"'
     where contents = (:) <$> single <*> rest
           single = noneOf "\\\"" <|> char '\\' *> anyChar
           rest = contents <|> pure []
