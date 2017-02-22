@@ -1,7 +1,7 @@
 
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
-                       func, func', exprToList, exprToList', exprFromList, prepend,
+                       func, func', exprToList, exprToList', exprFromList, exprFromBool, prepend,
                        coerceToNumber, coerceToString, coerceToBool, coerceToList,
                        eql, bindArgs) where
 
@@ -72,6 +72,10 @@ exprToList' e = case exprToList e of
 exprFromList :: [Expr] -> Expr
 exprFromList [] = Nil
 exprFromList (x:xs) = Cons x $ exprFromList xs
+
+exprFromBool :: Bool -> Expr
+exprFromBool False = Number 0
+exprFromBool True = Number 1
 
 prepend :: [Expr] -> Expr -> Expr
 prepend []     y = y

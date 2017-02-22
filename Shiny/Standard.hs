@@ -41,6 +41,7 @@ stdFuncs = fromList [
             (Var "cond", func' ifStmt),
             (Var "i", func' ifStmt),
             (Var "==", func equality),
+            (Var "sequence", func sequenceExpr),
             (Var "sq", func sequenceExpr),
             (Var "take", func takeExpr),
             (Var "tk", func takeExpr),
@@ -96,7 +97,17 @@ stdFuncs = fromList [
             (Var "foldr", func foldrExpr),
             (Var "fr", func foldrExpr),
             (Var "join", func joinExpr),
-            (Var "jn", func joinExpr)
+            (Var "jn", func joinExpr),
+            (Var "mod", func modExpr),
+            (Var "md", func modExpr),
+            (Var "even", func evenExpr),
+            (Var "ev", func evenExpr),
+            (Var "odd", func oddExpr),
+            (Var "od", func oddExpr),
+            (Var "strings", func stringConcat),
+            (Var "s", func stringConcat),
+            (Var "prime", func primeExpr),
+            (Var "pm", func primeExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -188,7 +199,7 @@ times xs = do
   return . Number . getProduct $ foldMap (Product . coerceToNumber) xs
 
 {-
- - (/) - Ten (TODO may become 1/2 in the future)
+ - (/) - 10 (TODO may become 1/2 in the future)
  - (/ x) - Return 0 (TODO to be reciprocal in the future)
  - (/ x y . any) - Divide latter elements from the first
  - Division by zero yields the divisor
@@ -257,6 +268,7 @@ sequential' xs = Func helper
  - (sq 0) - Returns the fibonacci sequence (0 1 1 2 3 ...)
  - (sq 1) - Returns the 2^n sequence (1 2 4 8 16 32 ...)
  - (sq 2) - Returns the identity sequence (0 1 2 3 4 5 ...)
+ - (sq 3) - Returns the primes (2 3 5 7 11 ...)
  - (sq n) - Returns a 1-ary function which returns nil
  - (sq x . y) - Behaves like (sq x) but returns a sequence of the form (sqg)
  - For a returned function (sqf)
@@ -265,6 +277,7 @@ sequential' xs = Func helper
  - For a returned function (sqg)
  -   (sqg) - Returns (sqg 1)
  -   (sqg n . y) - Returns the first n elements of the sequence
+ - (sequence) == (sq)
  -}
 sequenceExpr :: [Expr] -> Symbols Expr Expr
 sequenceExpr [] = sequenceExpr [Number 0]
@@ -272,6 +285,7 @@ sequenceExpr (n:ss) = do
   let fibo x y = Number x : fibo y (x + y)
       twon = map Number $ iterate (2 *) 1
       base = map Number $ [0..]
+      primes = map Number . filter isPrime $ [2..]
       nada = repeat Nil
   let n' = coerceToNumber n
       f = pure . BuiltIn . if null ss then sequential else sequential'
@@ -279,6 +293,7 @@ sequenceExpr (n:ss) = do
     0 -> f $ fibo 0 1
     1 -> f $ twon
     2 -> f $ base
+    3 -> f $ primes
     _ -> f $ nada
 
 consTake :: Integer -> Expr -> Expr
@@ -332,13 +347,13 @@ dropExpr xs = do
   return . exprFromList $ map (flip consDrop lst) nums
 
 {-
- - (apply) - Returns the lowercase alphabet as a string (TODO to be changed)
+ - (apply) - Returns 2,147,483,647
  - (apply f) - Applies the function to itself
  - (apply f x y ... xs) - Applies the function to the arglist
  - (ap) is an abbreviation for (apply)
  -}
 applyExpr :: [Expr] -> Symbols Expr Expr
-applyExpr [] = pure $ String ['a'..'z']
+applyExpr [] = pure $ Number 2147483647
 applyExpr [f] = functionCall f [f]
 applyExpr (f:xs) = do
   let start = init xs
@@ -405,14 +420,14 @@ orderingOp ord f _ _ xs  = pure $ if assertOrdering ord f xs then Number 1 else 
 
 {-
  - (range) - Returns 1337
- - (range n) - Returns (rg 0 n)
+ - (range n) - Returns (rg 1 n)
  - (range n1 ... nm) - Returns n1..n2..n3.. ... nm
  - (rg) == (range)
  - Example: (rg 5 7 3) => '(5 6 7 6 5 4 3)
  -}
 rangeExpr :: [Expr] -> Symbols Expr Expr
 rangeExpr [] = pure $ Number 1337
-rangeExpr [x] = rangeExpr [Number 0, x]
+rangeExpr [x] = rangeExpr [Number 1, x]
 rangeExpr xs = pure . exprFromList . map Number . rangeHelper $ map coerceToNumber xs
     where rangeHelper [] = []
           rangeHelper [x] = [x]
@@ -601,3 +616,53 @@ joinExpr [] = let t xs = pure . exprFromList . concatMap (\x -> [x, x]) $ xs
 joinExpr [f] = let t xs = functionCall f $ concatMap (\x -> [x, x]) xs
                in pure . BuiltIn $ Func t
 joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
+
+{-
+ - (mod) - 500
+ - (mod x) - Return x `mod` 10
+ - (mod x y . xs) - Return x `mod` y
+ - (md) == (mod)
+ - Modulo by zero yields the divisor
+ - Note that the sign of the modulo always matches the sign of the divisor
+ -}
+modExpr :: [Expr] -> Symbols Expr Expr
+modExpr [] = pure $ Number 500
+modExpr [x] = pure . Number . (`mod` 10) . coerceToNumber $ x
+modExpr (x:y:_) = pure . Number $ (mod' `on` coerceToNumber) x y
+    where mod' a 0 = a
+          mod' a b = mod a b
+
+{-
+ - (even x) - Returns true if even
+ - (even . xs) - Returns a list of booleans
+ - (ev) == (even)
+ -}
+evenExpr :: [Expr] -> Symbols Expr Expr
+evenExpr [x] = pure . exprFromBool . even . coerceToNumber $ x
+evenExpr xs = pure . exprFromList . map (exprFromBool . even . coerceToNumber) $ xs
+
+{-
+ - (odd x) - Returns true if odd
+ - (odd . xs) - Returns a list of booleans
+ - (od) == (odd)
+ -}
+oddExpr :: [Expr] -> Symbols Expr Expr
+oddExpr [x] = pure . exprFromBool . odd . coerceToNumber $ x
+oddExpr xs = pure . exprFromList . map (exprFromBool . odd . coerceToNumber) $ xs
+
+{-
+ - (strings . xs) - Concatenate strings
+ - (s) == (strings)
+ -}
+stringConcat :: [Expr] -> Symbols Expr Expr
+stringConcat = pure . String . fold . map coerceToString
+
+{-
+ - (prime x) - Returns true if prime
+ - (prime . xs) - Returns a list of booleans
+ - (pm) == (prime)
+ -}
+primeExpr :: [Expr] -> Symbols Expr Expr
+primeExpr [x] = pure . exprFromBool . isPrime . coerceToNumber $ x
+primeExpr xs = pure . exprFromList . map (exprFromBool . isPrime . coerceToNumber) $ xs
+
