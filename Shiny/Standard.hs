@@ -107,12 +107,16 @@ stdFuncs = fromList [
             (Var "strings", func stringConcat),
             (Var "s", func stringConcat),
             (Var "prime", func primeExpr),
-            (Var "pm", func primeExpr)
+            (Var "pm", func primeExpr),
+            (Var "up", func powerExpr),
+            (Var "mo", func minusOne),
+            (Var "po", func plusOne)
            ]
 
 stdValues :: SymbolTable Expr
 stdValues = fromList [
              (Var "o", Number 1),
+             (Var "w", Number 2),
              (Var "t", Number 10),
              (Var "n", Nil)
             ]
@@ -633,20 +637,24 @@ modExpr (x:y:_) = pure . Number $ (mod' `on` coerceToNumber) x y
           mod' a b = mod a b
 
 {-
+ - (even) - Returns 64
  - (even x) - Returns true if even
  - (even . xs) - Returns a list of booleans
  - (ev) == (even)
  -}
 evenExpr :: [Expr] -> Symbols Expr Expr
+evenExpr [] = pure $ Number 64
 evenExpr [x] = pure . exprFromBool . even . coerceToNumber $ x
 evenExpr xs = pure . exprFromList . map (exprFromBool . even . coerceToNumber) $ xs
 
 {-
+ - (odd) - Returns 32
  - (odd x) - Returns true if odd
  - (odd . xs) - Returns a list of booleans
  - (od) == (odd)
  -}
 oddExpr :: [Expr] -> Symbols Expr Expr
+oddExpr [] = pure $ Number 32
 oddExpr [x] = pure . exprFromBool . odd . coerceToNumber $ x
 oddExpr xs = pure . exprFromList . map (exprFromBool . odd . coerceToNumber) $ xs
 
@@ -658,11 +666,38 @@ stringConcat :: [Expr] -> Symbols Expr Expr
 stringConcat = pure . String . fold . map coerceToString
 
 {-
+ - (prime) - Returns 128
  - (prime x) - Returns true if prime
  - (prime . xs) - Returns a list of booleans
  - (pm) == (prime)
  -}
 primeExpr :: [Expr] -> Symbols Expr Expr
+primeExpr [] = pure $ Number 128
 primeExpr [x] = pure . exprFromBool . isPrime . coerceToNumber $ x
 primeExpr xs = pure . exprFromList . map (exprFromBool . isPrime . coerceToNumber) $ xs
 
+{-
+ - (up) - Returns 9,999
+ - (up x) - Returns x^2
+ - (up x y) - Returns x^|y| (TODO Support negative exponents)
+ - (up x ... y) - Uses right-tower
+ - For these purposes, 0^0 = 1
+ -}
+powerExpr :: [Expr] -> Symbols Expr Expr
+powerExpr [] = pure $ Number 9999
+powerExpr [x] = pure . Number . join (*) . coerceToNumber $ x
+powerExpr xs = let xs' = map coerceToNumber xs
+                   h x y = x ^ abs y
+               in pure . Number $ foldr1 h xs'
+
+{-
+ - (mo . xs) - Equivalent to (m ,xs 1)
+ -}
+minusOne :: [Expr] -> Symbols Expr Expr
+minusOne xs = minus $ xs ++ [Number 1]
+
+{-
+ - (po . xs) - Equivalent to (p ,xs 1)
+ -}
+plusOne :: [Expr] -> Symbols Expr Expr
+plusOne xs = plus $ xs ++ [Number 1]
