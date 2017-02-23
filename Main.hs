@@ -1,8 +1,15 @@
 
 import Shiny.Runner
+import Shiny.Eval
+import Shiny.Structure
+import Shiny.Symbol
+import Shiny.Standard
+import Shiny.Parser
 import System.Environment
 import System.IO
 import Control.Monad
+import Control.Monad.Trans.Except
+import Control.Monad.IO.Class
 
 showHelp :: IO ()
 showHelp = do
@@ -16,10 +23,13 @@ doREPL = do
   hSetBuffering stdin  NoBuffering
   hSetBuffering stdout NoBuffering
   hSetBuffering stderr NoBuffering
-  forever $ do
-           putStr "> "
-           x <- getLine
-           readEvalPrint x
+  void . runSymbols standardState . forever $ catchS operation (liftIO . putStrLn)
+      where operation = do
+              liftIO $ putStr "> "
+              x <- liftIO $ getLine
+              e <- Symbols . ExceptT . pure $ readExpr x
+              res <- evalSeq e
+              liftIO $ putStrLn (printable res)
 
 doFiles :: [FilePath] -> IO ()
 doFiles = mapM_ evalFileThenPrint
