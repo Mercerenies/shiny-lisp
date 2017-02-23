@@ -114,7 +114,13 @@ stdFuncs = fromList [
             (Var "split", func splitExpr),
             (Var "sp", func splitExpr),
             (Var "inter", func interExpr),
-            (Var "ps", func interExpr)
+            (Var "ps", func interExpr),
+            (Var "insert", func insertExpr),
+            (Var "it", func insertExpr),
+            (Var "remove", func removeExpr),
+            (Var "rm", func removeExpr),
+            (Var "nth", func nthExpr),
+            (Var "nh", func nthExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -452,13 +458,14 @@ quitProg _ = liftIO exitSuccess
 
 {-
  - (cons) - (() . ())
- - (cons x) = x
+ - (cons x) = (x . x)
  - (cons x y ... z) = (x y ... . z)
  - (c) == (cons)
  -}
 consExpr :: [Expr] -> Symbols Expr Expr
 consExpr [] = pure $ Cons Nil Nil
-consExpr [x] = pure x
+consExpr [x] = pure $ Cons x x
+consExpr [x, y] = pure $ Cons x y
 consExpr (x:xs) = Cons x <$> consExpr xs
 
 {-
@@ -740,3 +747,59 @@ interExpr [x, d] = pure . String $ intercalate (fromExpr d) (map fromExpr $ from
 interExpr xs = let xs' = init xs
                    d = fromExpr $ last xs
                in pure . String . intercalate d . map fromExpr $ concatMap fromExpr xs'
+
+{-
+ - (insert) - Returns 0 (TODO Change this)
+ - (insert xs) - Returns (,xs ... ())
+ - (insert x xs) - Returns (,xs ... x)
+ - (insert n x xs) - Returns xs with x inserted at the nth position)
+ - (insert n x ... z xs) - Returns (insert n x (insert ... z xs))
+ - (it) == (insert)
+ - The argument xs is always coerced to a list
+ -}
+insertExpr :: [Expr] -> Symbols Expr Expr
+insertExpr [] = pure $ Number 0
+insertExpr [xs] = insertExpr [Nil, xs]
+insertExpr [x, xs] = pure . expressed (++ [x]) $ xs
+insertExpr [n, x, xs] = pure . expressed (insertAt (fromExpr n :: Integer) x) $ xs
+insertExpr (x:y:xs) = do
+  inner <- insertExpr xs
+  insertExpr [x, y, inner]
+
+{-
+ - (remove) - Returns 0 (TODO Change this)
+ - (remove xs) - Removes the last element of xs
+ - (remove n ... m xs) - Removes mth, then ..., then nth of xs
+ - (rm) == (remove)
+ - The argument xs is always coerced to a list
+ -}
+removeExpr :: [Expr] -> Symbols Expr Expr
+removeExpr [] = pure $ Number 0
+removeExpr [xs] = let init' :: [Expr] -> [Expr]
+                      init' [] = []
+                      init' as = init as
+                  in pure . expressed init' $ xs
+removeExpr [n, xs] = pure . expressed ((removeAt :: Integer -> [Expr] -> [Expr]) $ fromExpr n) $ xs
+removeExpr (x:xs) = do
+  inner <- removeExpr xs
+  removeExpr [x, inner]
+
+{-
+ - (nth) - Returns 0 (TODO Change this)
+ - (nth xs) - Gets the last element of xs
+ - (nth n xs) - Returns the nth element
+ - (nth n ... m xs) - Returns a list containing selected elements
+ - (nh) == (nth)
+ - Index is always done (mod lenxs), if list is empty, nil is returned
+ -}
+nthExpr :: [Expr] -> Symbols Expr Expr
+nthExpr [] = pure $ Number 0
+nthExpr [xs] = let last' [] = Nil
+                   last' as = last as
+               in pure . expressed last' $ xs
+nthExpr [n, xs] = let n' = fromExpr n :: Integer
+                      xs' = fromExpr xs :: [Expr]
+                  in pure . maybe Nil id $ xs' `wrappedNth` n'
+nthExpr ms = let ns = init ms
+                 xs = last ms
+             in toExpr <$> mapM (\n -> nthExpr [n, xs]) ns

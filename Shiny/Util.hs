@@ -1,6 +1,7 @@
 
-module Shiny.Util(sortByM, isPrime, unintercalate) where
+module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth) where
 
+import Data.List
 import Control.Monad
 
 sortByM :: Monad m => (a -> a -> m Ordering) -> [a] -> m [a]
@@ -23,3 +24,16 @@ unintercalate d xs = reverse $ helper xs [] []
           helper ys z zs
               | take len ys == d = helper (drop len ys) [] (reverse z : zs)
               | otherwise = helper (tail ys) (head ys : z) zs
+
+insertAt :: Integral i => i -> a -> [a] -> [a]
+insertAt n x xs = let (ls, rs) = genericSplitAt n xs in ls ++ [x] ++ rs
+
+removeAt :: Integral i => i -> [a] -> [a]
+removeAt n xs | n < 0 = xs
+removeAt n xs = case genericSplitAt n xs of
+                  (ls, _:rs) -> ls ++ rs
+                  (ls, rs) -> ls ++ rs
+
+wrappedNth :: Integral i => [a] -> i -> Maybe a
+wrappedNth [] _ = Nothing
+wrappedNth xs n = Just $ xs `genericIndex` (n `mod` genericLength xs)
