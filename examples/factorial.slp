@@ -1,0 +1,6 @@
+
+"Define the factorial function"
+_F:<FrRg
+
+"Then print the result"
+(print (map f (range 0 7)))
