@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
 import Shiny.Structure
+import Shiny.Parser
 import Shiny.Symbol
 import Shiny.Eval
 import Shiny.Vars
@@ -120,7 +121,11 @@ stdFuncs = fromList [
             (Var "remove", func removeExpr),
             (Var "rm", func removeExpr),
             (Var "nth", func nthExpr),
-            (Var "nh", func nthExpr)
+            (Var "nh", func nthExpr),
+            (Var "read", func readStmt),
+            (Var "rd", func readStmt),
+            (Var "eval", func evalStmt),
+            (Var "ev", func evalStmt)
            ]
 
 stdValues :: SymbolTable Expr
@@ -803,3 +808,23 @@ nthExpr [n, xs] = let n' = fromExpr n :: Integer
 nthExpr ms = let ns = init ms
                  xs = last ms
              in toExpr <$> mapM (\n -> nthExpr [n, xs]) ns
+
+{-
+ - (read) - Nil
+ - (read x) - Reads the string as an S-expression
+ - (read x ... y) - Reads each expression; returns a list
+ - (rd) == (read)
+ -}
+readStmt :: [Expr] -> Symbols Expr Expr
+readStmt [] = pure Nil
+readStmt [x] = pure $ case readSingleExpr $ fromExpr x of
+                        Left s -> String s -- TODO Something error-related here
+                        Right y -> y
+readStmt xs = toExpr <$> mapM (\x -> readStmt [x]) xs
+
+{-
+ - (eval) - Nil
+ - (eval x ... y) - Evaluates the expressions in sequence
+ -}
+evalStmt :: [Expr] -> Symbols Expr Expr
+evalStmt = evalSeq

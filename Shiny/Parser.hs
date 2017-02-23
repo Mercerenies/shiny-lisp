@@ -1,5 +1,5 @@
 
-module Shiny.Parser(readExpr, readExpr') where
+module Shiny.Parser(readExpr, readExpr', readSingleExpr, readSingleExpr') where
 
 import Shiny.Structure
 import Shiny.Case
@@ -15,6 +15,12 @@ readExpr = first show . readExpr'
 
 readExpr' :: String -> Either ParseError [Expr]
 readExpr' = parse (exprs <* eof) "(eval)"
+
+readSingleExpr :: String -> Either String Expr
+readSingleExpr = first show . readSingleExpr'
+
+readSingleExpr' :: String -> Either ParseError Expr
+readSingleExpr' = parse expr "(eval)"
 
 exprs :: Parser [Expr]
 exprs = concat <$> (spaces *> many (listContents <* spaces))
