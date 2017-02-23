@@ -110,7 +110,11 @@ stdFuncs = fromList [
             (Var "pm", func primeExpr),
             (Var "up", func powerExpr),
             (Var "mo", func minusOne),
-            (Var "po", func plusOne)
+            (Var "po", func plusOne),
+            (Var "split", func splitExpr),
+            (Var "sp", func splitExpr),
+            (Var "inter", func interExpr),
+            (Var "ps", func interExpr)
            ]
 
 stdValues :: SymbolTable Expr
@@ -701,3 +705,33 @@ minusOne xs = minus $ xs ++ [Number 1]
  -}
 plusOne :: [Expr] -> Symbols Expr Expr
 plusOne xs = plus $ xs ++ [Number 1]
+
+{-
+ - (split) - Returns the digits 0-9 in a string
+ - (split x) - Splits the string x into a list, delimited at spaces
+ - (split x d) - Splits the string x into a list, delimited by d
+ - (split x y ... z d) - Splits each string into lists, flattening
+ - (sp) == (split)
+ -}
+splitExpr :: [Expr] -> Symbols Expr Expr
+splitExpr [] = pure $ String "0123456789"
+splitExpr [x] = splitExpr [x, String " "]
+splitExpr [x, d] = pure . exprFromList . map String $ unintercalate (coerceToString d) (coerceToString x)
+splitExpr xs = let xs' = init xs
+                   d = last xs
+               in exprFromList <$> mapM (\x -> splitExpr [x, d]) xs'
+
+{-
+ - (inter) - Returns ")!@#$%^&*(" in a string
+ - (inter xs) - Joins the list xs into a single string, delimited by spaces
+ - (inter xs d) - Joins the list, using the given delimiter
+ - (inter xs ys ... zs d) - Joins all of the lists, collectively
+ - (ps) == (inter)
+ -}
+interExpr :: [Expr] -> Symbols Expr Expr
+interExpr [] = pure $ String ")!@#$%^&*("
+interExpr [x] = interExpr [x, String " "]
+interExpr [x, d] = pure . String $ intercalate (coerceToString d) (map coerceToString $ coerceToList x)
+interExpr xs = let xs' = init xs
+                   d = coerceToString $ last xs
+               in pure . String . intercalate d . map coerceToString $ concatMap coerceToList xs'
