@@ -2,8 +2,8 @@
 
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
-                       func, func', exprToList, exprToList', exprFromList, exprFromBool, prepend,
-                       coerceToNumber, coerceToString, coerceToBool, coerceToList, FromExpr(..), ToExpr(..),
+                       func, func', exprToList, exprToList', prepend,
+                       FromExpr(..), ToExpr(..), expressed,
                        eql, bindArgs) where
 
 import Shiny.Symbol
@@ -114,9 +114,6 @@ coerceToList Nil = []
 coerceToList (Cons x y) = x : coerceToList y
 coerceToList z = [z]
 
--- NOTE: We will probably stop exporting the coerceTo* and exprFrom* functions soon; use the toExpr and fromExpr
--- general forms!
-
 class FromExpr a where
     fromExpr :: Expr -> a
 
@@ -135,8 +132,8 @@ instance FromExpr String where
 instance FromExpr Bool where
     fromExpr = coerceToBool
 
-instance FromExpr a => FromExpr [a] where
-    fromExpr = map fromExpr . coerceToList
+instance FromExpr [Expr] where
+    fromExpr = coerceToList
 
 instance ToExpr Expr where
     toExpr = id
@@ -150,8 +147,11 @@ instance ToExpr String where
 instance ToExpr Bool where
     toExpr = exprFromBool
 
-instance ToExpr a => ToExpr [a] where
-    toExpr = exprFromList . map toExpr
+instance ToExpr [Expr] where
+    toExpr = exprFromList
+
+expressed :: (FromExpr a, ToExpr b) => (a -> b) -> Expr -> Expr
+expressed f = toExpr . f . fromExpr
 
 eql :: Expr -> Expr -> Bool
 eql Nil Nil = True

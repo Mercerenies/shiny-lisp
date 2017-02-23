@@ -53,22 +53,22 @@ stdFuncs = fromList [
             (Var "a", func mapExpr),
             (Var "filter", func filterExpr),
             (Var "e", func filterExpr),
-            (Var "lessthan", func $ orderingOp (<) coerceToNumber (Number 5) (Number (-5))),
-            (Var "c,", func $ orderingOp (<) coerceToNumber (Number 5) (Number (-5))),
-            (Var "lesseq", func $ orderingOp (<=) coerceToNumber (Number 5) (Number (-5))),
-            (Var "=,", func $ orderingOp (<=) coerceToNumber (Number 5) (Number (-5))),
-            (Var "greaterthan", func $ orderingOp (>) coerceToNumber (Number 15) (Number 25)),
-            (Var "c;", func $ orderingOp (>) coerceToNumber (Number 15) (Number 25)),
-            (Var "greatereq", func $ orderingOp (>=) coerceToNumber (Number 15) (Number 25)),
-            (Var "=;", func $ orderingOp (>=) coerceToNumber (Number 15) (Number 25)),
-            (Var "slessthan", func $ orderingOp (<) coerceToString (Number 5) (Number (-5))),
-            (Var ",c", func $ orderingOp (<) coerceToString (Number 5) (Number (-5))),
-            (Var "slesseq", func $ orderingOp (<=) coerceToString (Number 5) (Number (-5))),
-            (Var ",=", func $ orderingOp (<=) coerceToString (Number 5) (Number (-5))),
-            (Var "sgreaterthan", func $ orderingOp (>) coerceToString (Number 15) (Number 25)),
-            (Var ";c", func $ orderingOp (>) coerceToString (Number 15) (Number 25)),
-            (Var "sgreatereq", func $ orderingOp (>=) coerceToString (Number 15) (Number 25)),
-            (Var ";=", func $ orderingOp (>=) coerceToString (Number 15) (Number 25)),
+            (Var "lessthan", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "c,", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "lesseq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "=,", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "greaterthan", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "c;", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "greatereq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "=;", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "slessthan", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var ",c", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "slesseq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var ",=", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "sgreaterthan", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var ";c", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "sgreatereq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var ";=", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var "range", func rangeExpr),
             (Var "rg", func rangeExpr),
             (Var "quit", func quitProg),
@@ -170,7 +170,7 @@ progn xs = pure $ last xs
  - (l) is an abbreviation for (list)
  -}
 list :: [Expr] -> Symbols Expr Expr
-list = pure . exprFromList
+list = pure . toExpr
 
 {-
  - (print . any) - Prints each element (evaluated), on its own line; returns Nil
@@ -186,7 +186,7 @@ puts xs = do
  -}
 plus :: [Expr] -> Symbols Expr Expr
 plus xs = do
-  return . Number . getSum $ foldMap (Sum . coerceToNumber) xs
+  return . Number . getSum $ foldMap (Sum . fromExpr) xs
 
 {-
  - (m) - Negative one
@@ -195,16 +195,16 @@ plus xs = do
  -}
 minus :: [Expr] -> Symbols Expr Expr
 minus [] = pure $ Number (-1)
-minus [x] = pure $ Number (- coerceToNumber x)
+minus [x] = pure $ Number (- fromExpr x)
 minus (x:xs) = do
-  return . Number $ coerceToNumber x - (getSum $ foldMap (Sum . coerceToNumber) xs)
+  return . Number $ fromExpr x - (getSum $ foldMap (Sum . fromExpr) xs)
 
 {-
  - (& . any) - Multiples the elements (note: & is lowercase of *)
  -}
 times :: [Expr] -> Symbols Expr Expr
 times xs = do
-  return . Number . getProduct $ foldMap (Product . coerceToNumber) xs
+  return . Number . getProduct $ foldMap (Product . fromExpr) xs
 
 {-
  - (/) - 10 (TODO may become 1/2 in the future)
@@ -216,11 +216,11 @@ divs :: [Expr] -> Symbols Expr Expr
 divs [] = pure $ Number 10
 divs [_] = pure $ Number 0
 divs (x:xs) = do
-  let pr = (getProduct $ foldMap (Product . coerceToNumber) xs)
+  let pr = (getProduct $ foldMap (Product . fromExpr) xs)
   if pr == 0 then
-      return . Number $ coerceToNumber x
+      return . Number $ fromExpr x
   else
-      return . Number $ coerceToNumber x `div` pr
+      return . Number $ fromExpr x `div` pr
 
 {-
  - (cond) - No-op; return nil
@@ -233,7 +233,7 @@ ifStmt [] = pure Nil
 ifStmt [x] = evaluate x
 ifStmt (x:y:xs) = do
   x' <- evaluate x
-  if coerceToBool x' then
+  if fromExpr x' then
       evaluate y
   else
       ifStmt xs
@@ -261,15 +261,15 @@ sequential :: [Expr] -> Func
 sequential xs = Func helper
     where helper [] = helper [Number 0]
           helper (n:_) = do
-            n' <- coerceToNumber <$> evaluate n
+            n' <- (fromExpr <$> evaluate n) :: Symbols Expr Integer
             pure $ xs `genericIndex` n'
 
 sequential' :: [Expr] -> Func
 sequential' xs = Func helper
     where helper [] = helper [Number 1]
           helper (n:_) = do
-            n' <- coerceToNumber <$> evaluate n
-            pure . exprFromList $ genericTake n' xs
+            n' <- (fromExpr <$> evaluate n) :: Symbols Expr Integer
+            pure . toExpr $ genericTake n' xs
 
 {-
  - (sq) - Returns (sq 0)
@@ -295,7 +295,7 @@ sequenceExpr (n:ss) = do
       base = map Number $ [0..]
       primes = map Number . filter isPrime $ [2..]
       nada = repeat Nil
-  let n' = coerceToNumber n
+  let n' = fromExpr n :: Integer
       f = pure . BuiltIn . if null ss then sequential else sequential'
   case n' of
     0 -> f $ fibo 0 1
@@ -335,8 +335,8 @@ takeExpr [] = pure $ Number 10000
 takeExpr [x] = listCar <$> evaluate x
 takeExpr xs = do
   let lst = last xs
-      nums = coerceToNumber <$> init xs
-  return . exprFromList . snd $ mapAccumL (\acc n -> (consDrop n acc, consTake n acc)) lst nums
+      nums = fromExpr <$> init xs
+  return . toExpr . snd $ mapAccumL (\acc n -> (consDrop n acc, consTake n acc)) lst nums
 
 {-
  - (drop) - Returns 2,048
@@ -351,8 +351,8 @@ dropExpr [] = pure $ Number 2048
 dropExpr [x] = listCdr <$> evaluate x
 dropExpr xs = do
   let lst = last xs
-      nums = coerceToNumber <$> init xs
-  return . exprFromList $ map (flip consDrop lst) nums
+      nums = fromExpr <$> init xs
+  return . toExpr $ map (flip consDrop lst) nums
 
 {-
  - (apply) - Returns 2,147,483,647
@@ -376,8 +376,8 @@ applyExpr (f:xs) = do
  -}
 mapExpr :: [Expr] -> Symbols Expr Expr
 mapExpr [] = pure $ String ['A'..'Z']
-mapExpr [xs] = pure . exprFromList . reverse . coerceToList $ xs
-mapExpr (f:xss) = exprFromList <$> helper (map coerceToList xss)
+mapExpr [xs] = pure . expressed (reverse :: [Expr] -> [Expr]) $ xs
+mapExpr (f:xss) = toExpr <$> helper (map fromExpr xss)
     where helper yss
               | any null yss = pure []
               | otherwise = do
@@ -394,11 +394,11 @@ mapExpr (f:xss) = exprFromList <$> helper (map coerceToList xss)
  -}
 filterExpr :: [Expr] -> Symbols Expr Expr
 filterExpr [] = pure $ String ['a'..'z']
-filterExpr [xs] = pure . exprFromList . filter coerceToBool . coerceToList $ xs
+filterExpr [xs] = pure . expressed (filter fromExpr) $ xs
 filterExpr (f:xs:_) = do
-  let xs' = coerceToList xs
-  xs'' <- filterM (\x -> coerceToBool <$> functionCall f [x]) xs'
-  return $ exprFromList xs''
+  let xs' = fromExpr xs
+  xs'' <- filterM (\x -> fromExpr <$> functionCall f [x]) xs'
+  return $ toExpr xs''
 
 {-
  - All of the comparisons work the same.
@@ -436,7 +436,7 @@ orderingOp ord f _ _ xs  = pure $ if assertOrdering ord f xs then Number 1 else 
 rangeExpr :: [Expr] -> Symbols Expr Expr
 rangeExpr [] = pure $ Number 1337
 rangeExpr [x] = rangeExpr [Number 1, x]
-rangeExpr xs = pure . exprFromList . map Number . rangeHelper $ map coerceToNumber xs
+rangeExpr xs = pure . toExpr . map Number . rangeHelper $ map fromExpr xs
     where rangeHelper [] = []
           rangeHelper [x] = [x]
           rangeHelper (x:y:ys) = case x `compare` y of
@@ -467,7 +467,7 @@ consExpr (x:xs) = Cons x <$> consExpr xs
  - (b&) == (bitand)
  -}
 andExpr :: [Expr] -> Symbols Expr Expr
-andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map coerceToNumber
+andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map fromExpr
 
 {-
  - (bitor) - All zero-bits
@@ -475,7 +475,7 @@ andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map coerceToNumber
  - (b\) = (bitor)
  -}
 orExpr :: [Expr] -> Symbols Expr Expr
-orExpr = pure . Number . foldr (.|.) zeroBits . map coerceToNumber
+orExpr = pure . Number . foldr (.|.) zeroBits . map fromExpr
 
 {-
  - (bitxor) - 256
@@ -485,8 +485,8 @@ orExpr = pure . Number . foldr (.|.) zeroBits . map coerceToNumber
  -}
 xorExpr :: [Expr] -> Symbols Expr Expr
 xorExpr [] = pure $ Number 256
-xorExpr [x] = pure . Number . complement $ coerceToNumber x
-xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
+xorExpr [x] = pure . Number . complement $ fromExpr x
+xorExpr xs = pure . Number . foldr1 xor . map fromExpr $ xs
 
 {-
  - (boolnorm) - 999
@@ -496,8 +496,8 @@ xorExpr xs = pure . Number . foldr1 xor . map coerceToNumber $ xs
  -}
 boolNorm :: [Expr] -> Symbols Expr Expr
 boolNorm [] = pure $ Number 999
-boolNorm [x] = pure . Number $ if coerceToBool x then 1 else 0
-boolNorm xs = exprFromList <$> mapM (boolNorm . return) xs
+boolNorm [x] = pure . Number $ if fromExpr x then 1 else 0
+boolNorm xs = toExpr <$> mapM (boolNorm . return) xs
 
 {-
  - (hook) - ((hook) x y z) = (list z y x)
@@ -507,13 +507,17 @@ boolNorm xs = exprFromList <$> mapM (boolNorm . return) xs
  - (hk) == (hook)
  -}
 hook :: [Expr] -> Symbols Expr Expr
-hook [] = let t xs = pure . exprFromList $ reverse xs
+hook [] = let t :: [Expr] -> Symbols Expr Expr
+              t xs = pure . toExpr $ reverse xs
           in pure . BuiltIn $ Func t
-hook [f] = let t xs = functionCall f $ reverse xs
+hook [f] = let t :: [Expr] -> Symbols Expr Expr
+               t xs = functionCall f $ reverse xs
            in pure . BuiltIn $ Func t
-hook [f, g] = let t xs = mapM (functionCall g . pure) xs >>= functionCall f
+hook [f, g] = let t :: [Expr] -> Symbols Expr Expr
+                  t xs = mapM (functionCall g . pure) xs >>= functionCall f
               in pure $ func t
-hook (f:gs) = let t xs = zipWithM (\g x -> functionCall g $ pure x) gs xs >>= functionCall f
+hook (f:gs) = let t :: [Expr] -> Symbols Expr Expr
+                  t xs = zipWithM (\g x -> functionCall g $ pure x) gs xs >>= functionCall f
               in pure $ func t
 
 {-
@@ -544,18 +548,18 @@ compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFu
  -                 of times.
  -}
 sortExpr :: [Expr] -> Symbols Expr Expr
-sortExpr [] = pure $ exprFromList (Number <$> [1..10])
-sortExpr [xs] = pure . exprFromList . sortBy (compare `on` coerceToNumber) . coerceToList $ xs
-sortExpr [f, xs] = exprFromList <$> sortByM ord (coerceToList xs)
+sortExpr [] = pure $ toExpr (Number <$> [1..10])
+sortExpr [xs] = pure . (expressed $ sortBy (compare `on` (fromExpr :: Expr -> Integer))) $ xs
+sortExpr [f, xs] = toExpr <$> sortByM ord (fromExpr xs)
     where ord x y = do
-            le <- coerceToBool <$> functionCall f [x, y]
-            ge <- coerceToBool <$> functionCall f [y, x]
+            le <- fromExpr <$> functionCall f [x, y]
+            ge <- fromExpr <$> functionCall f [y, x]
             pure $ case (le, ge) of
                      (True, True) -> EQ
                      (True, False) -> LT
                      (False, True) -> GT
                      (False, False) -> EQ -- Chosen arbitrarily
-sortExpr (f:xs) = sortExpr [f, exprFromList xs]
+sortExpr (f:xs) = sortExpr [f, toExpr xs]
 
 {-
  - (divides) - Returns -100
@@ -566,12 +570,13 @@ sortExpr (f:xs) = sortExpr [f, exprFromList xs]
  -}
 divides :: [Expr] -> Symbols Expr Expr
 divides [] = pure $ Number (-100)
-divides [x] = let check 0 = False
+divides [x] = let check :: Integer -> Bool
+                  check 0 = False
                   check 1 = True
                   check n = check $ n `div` 10
-              in pure . Number $ if check . coerceToNumber $ x then 1 else 0
-divides [x, y] = let x' = coerceToNumber x
-                     y' = coerceToNumber y
+              in pure . expressed check $ x
+divides [x, y] = let x' = fromExpr x :: Integer
+                     y' = fromExpr y :: Integer
                  in case () of
                       _ | x' == 0 -> pure (Number 0)
                         | (y' `div` x') * x' == y' -> pure (Number 1)
@@ -579,7 +584,7 @@ divides [x, y] = let x' = coerceToNumber x
 divides (x:y:xs) = do
   a1 <- divides [x, y]
   a2 <- divides (y:xs)
-  if coerceToBool a1 && coerceToBool a2 then
+  if fromExpr a1 && fromExpr a2 then
       return $ Number 1
   else
       return $ Number 0
@@ -593,8 +598,8 @@ divides (x:y:xs) = do
  -}
 foldlExpr :: [Expr] -> Symbols Expr Expr
 foldlExpr [] = pure $ Number 1000000
-foldlExpr [xs] = pure . Number . sum . map coerceToNumber $ coerceToList xs
-foldlExpr (f:ys) = case init ys ++ coerceToList (last ys) of
+foldlExpr [xs] = pure . Number . sum . map fromExpr $ fromExpr xs
+foldlExpr (f:ys) = case init ys ++ fromExpr (last ys) of
                      [] -> return Nil
                      xs -> foldlM (\x y -> functionCall f [x, y]) (head xs) (tail xs)
 
@@ -607,8 +612,8 @@ foldlExpr (f:ys) = case init ys ++ coerceToList (last ys) of
  -}
 foldrExpr :: [Expr] -> Symbols Expr Expr
 foldrExpr [] = pure $ Number (-1000000)
-foldrExpr [xs] = pure . Number . product . map coerceToNumber $ coerceToList xs
-foldrExpr (f:ys) = case init ys ++ coerceToList (last ys) of
+foldrExpr [xs] = pure . Number . product . map fromExpr $ fromExpr xs
+foldrExpr (f:ys) = case init ys ++ fromExpr (last ys) of
                      [] -> return Nil
                      xs -> foldrM (\x y -> functionCall f [x, y]) (last xs) (init xs)
 
@@ -619,7 +624,7 @@ foldrExpr (f:ys) = case init ys ++ coerceToList (last ys) of
  - (jn) == (join)
  -}
 joinExpr :: [Expr] -> Symbols Expr Expr
-joinExpr [] = let t xs = pure . exprFromList . concatMap (\x -> [x, x]) $ xs
+joinExpr [] = let t xs = pure . (toExpr :: [Expr] -> Expr) . concatMap (\x -> [x, x]) $ xs
               in pure . BuiltIn $ Func t
 joinExpr [f] = let t xs = functionCall f $ concatMap (\x -> [x, x]) xs
                in pure . BuiltIn $ Func t
@@ -635,8 +640,8 @@ joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
  -}
 modExpr :: [Expr] -> Symbols Expr Expr
 modExpr [] = pure $ Number 500
-modExpr [x] = pure . Number . (`mod` 10) . coerceToNumber $ x
-modExpr (x:y:_) = pure . Number $ (mod' `on` coerceToNumber) x y
+modExpr [x] = pure . Number . (`mod` 10) . fromExpr $ x
+modExpr (x:y:_) = pure . Number $ (mod' `on` fromExpr) x y
     where mod' a 0 = a
           mod' a b = mod a b
 
@@ -648,8 +653,8 @@ modExpr (x:y:_) = pure . Number $ (mod' `on` coerceToNumber) x y
  -}
 evenExpr :: [Expr] -> Symbols Expr Expr
 evenExpr [] = pure $ Number 64
-evenExpr [x] = pure . exprFromBool . even . coerceToNumber $ x
-evenExpr xs = pure . exprFromList . map (exprFromBool . even . coerceToNumber) $ xs
+evenExpr [x] = pure . expressed (even :: Integer -> Bool) $ x
+evenExpr xs = pure . toExpr . map (expressed (even :: Integer -> Bool)) $ xs
 
 {-
  - (odd) - Returns 32
@@ -659,15 +664,15 @@ evenExpr xs = pure . exprFromList . map (exprFromBool . even . coerceToNumber) $
  -}
 oddExpr :: [Expr] -> Symbols Expr Expr
 oddExpr [] = pure $ Number 32
-oddExpr [x] = pure . exprFromBool . odd . coerceToNumber $ x
-oddExpr xs = pure . exprFromList . map (exprFromBool . odd . coerceToNumber) $ xs
+oddExpr [x] = pure . expressed (odd :: Integer -> Bool) $ x
+oddExpr xs = pure . toExpr . map (expressed $ (odd :: Integer -> Bool)) $ xs
 
 {-
  - (strings . xs) - Concatenate strings
  - (s) == (strings)
  -}
 stringConcat :: [Expr] -> Symbols Expr Expr
-stringConcat = pure . String . fold . map coerceToString
+stringConcat = pure . String . fold . map fromExpr
 
 {-
  - (prime) - Returns 128
@@ -677,8 +682,8 @@ stringConcat = pure . String . fold . map coerceToString
  -}
 primeExpr :: [Expr] -> Symbols Expr Expr
 primeExpr [] = pure $ Number 128
-primeExpr [x] = pure . exprFromBool . isPrime . coerceToNumber $ x
-primeExpr xs = pure . exprFromList . map (exprFromBool . isPrime . coerceToNumber) $ xs
+primeExpr [x] = pure . expressed (isPrime :: Integer -> Bool) $ x
+primeExpr xs = pure . toExpr . map (expressed (isPrime :: Integer -> Bool)) $ xs
 
 {-
  - (up) - Returns 9,999
@@ -689,8 +694,8 @@ primeExpr xs = pure . exprFromList . map (exprFromBool . isPrime . coerceToNumbe
  -}
 powerExpr :: [Expr] -> Symbols Expr Expr
 powerExpr [] = pure $ Number 9999
-powerExpr [x] = pure . Number . join (*) . coerceToNumber $ x
-powerExpr xs = let xs' = map coerceToNumber xs
+powerExpr [x] = pure . Number . join (*) . fromExpr $ x
+powerExpr xs = let xs' = map fromExpr xs
                    h x y = x ^ abs y
                in pure . Number $ foldr1 h xs'
 
@@ -716,10 +721,10 @@ plusOne xs = plus $ xs ++ [Number 1]
 splitExpr :: [Expr] -> Symbols Expr Expr
 splitExpr [] = pure $ String "0123456789"
 splitExpr [x] = splitExpr [x, String " "]
-splitExpr [x, d] = pure . exprFromList . map String $ unintercalate (coerceToString d) (coerceToString x)
+splitExpr [x, d] = pure . toExpr . map String $ unintercalate (fromExpr d) (fromExpr x)
 splitExpr xs = let xs' = init xs
                    d = last xs
-               in exprFromList <$> mapM (\x -> splitExpr [x, d]) xs'
+               in toExpr <$> mapM (\x -> splitExpr [x, d]) xs'
 
 {-
  - (inter) - Returns ")!@#$%^&*(" in a string
@@ -731,7 +736,7 @@ splitExpr xs = let xs' = init xs
 interExpr :: [Expr] -> Symbols Expr Expr
 interExpr [] = pure $ String ")!@#$%^&*("
 interExpr [x] = interExpr [x, String " "]
-interExpr [x, d] = pure . String $ intercalate (coerceToString d) (map coerceToString $ coerceToList x)
+interExpr [x, d] = pure . String $ intercalate (fromExpr d) (map fromExpr $ fromExpr x)
 interExpr xs = let xs' = init xs
-                   d = coerceToString $ last xs
-               in pure . String . intercalate d . map coerceToString $ concatMap coerceToList xs'
+                   d = fromExpr $ last xs
+               in pure . String . intercalate d . map fromExpr $ concatMap fromExpr xs'

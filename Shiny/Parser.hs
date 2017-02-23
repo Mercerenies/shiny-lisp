@@ -20,13 +20,13 @@ exprs :: Parser [Expr]
 exprs = concat <$> (spaces *> many (listContents <* spaces))
 
 expr :: Parser Expr
-expr = list <|> quoted <|> exprFromList <$> upperChain
+expr = list <|> quoted <|> toExpr <$> upperChain
 
 quoted :: Parser Expr
 quoted = char '\'' *> (doQuote <$> (expr <|> lowerExpr))
 
 doQuote :: Expr -> Expr
-doQuote x = exprFromList [Atom "quote", x]
+doQuote x = toExpr [Atom "quote", x]
 
 doProgn :: Expr -> Expr
 doProgn = Cons (Atom "progn")
@@ -74,7 +74,7 @@ mandatoryUpper :: Parser Expr
 mandatoryUpper = capsAtom <|> coloned
     where coloned = do
             void $ char ':'
-            lowerExpr <|> exprFromList <$> upperChain
+            lowerExpr <|> toExpr <$> upperChain
 
 atom :: Parser Expr
 atom = Atom <$> many1 lower
