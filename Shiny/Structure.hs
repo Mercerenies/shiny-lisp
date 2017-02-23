@@ -1,8 +1,9 @@
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
                        func, func', exprToList, exprToList', exprFromList, exprFromBool, prepend,
-                       coerceToNumber, coerceToString, coerceToBool, coerceToList,
+                       coerceToNumber, coerceToString, coerceToBool, coerceToList, FromExpr(..), ToExpr(..),
                        eql, bindArgs) where
 
 import Shiny.Symbol
@@ -112,6 +113,45 @@ coerceToList :: Expr -> [Expr]
 coerceToList Nil = []
 coerceToList (Cons x y) = x : coerceToList y
 coerceToList z = [z]
+
+-- NOTE: We will probably stop exporting the coerceTo* and exprFrom* functions soon; use the toExpr and fromExpr
+-- general forms!
+
+class FromExpr a where
+    fromExpr :: Expr -> a
+
+class ToExpr a where
+    toExpr :: a -> Expr
+
+instance FromExpr Expr where
+    fromExpr = id
+
+instance FromExpr Integer where
+    fromExpr = coerceToNumber
+
+instance FromExpr String where
+    fromExpr = coerceToString
+
+instance FromExpr Bool where
+    fromExpr = coerceToBool
+
+instance FromExpr a => FromExpr [a] where
+    fromExpr = map fromExpr . coerceToList
+
+instance ToExpr Expr where
+    toExpr = id
+
+instance ToExpr Integer where
+    toExpr = Number
+
+instance ToExpr String where
+    toExpr = String
+
+instance ToExpr Bool where
+    toExpr = exprFromBool
+
+instance ToExpr a => ToExpr [a] where
+    toExpr = exprFromList . map toExpr
 
 eql :: Expr -> Expr -> Bool
 eql Nil Nil = True
