@@ -15,6 +15,6 @@ If you have a chain of identifiers or literals, it will be split off at any capi
 
     (= fib [cond (== x 0) 0 (== x 1) 1 (p (fib (m x 1)) (fib (m x 2)))])
     _F[i _=X0 0 _=X1 1(p F:MX1 F:MX2)]
-    _F'I:C,X2~X:P:F:MX1~~:F:MX2
+    _F'I:C,X2~X:P(f:MX1):F:MX2
 
 This language is a work-in-progress. I will write up a wiki when it gets a bit further along.
