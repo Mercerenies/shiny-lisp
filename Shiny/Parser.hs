@@ -65,10 +65,10 @@ listContents :: Parser [Expr]
 listContents = pure <$> expr <|> lowerChain
 
 lowerChain :: Parser [Expr]
-lowerChain = (:) <$> lowerExpr <*> many upperExpr
+lowerChain = ((:) <$> lowerExpr <*> many upperExpr) <* optional (char '~')
 
 upperChain :: Parser [Expr]
-upperChain = (:) <$> mandatoryUpper <*> many upperExpr
+upperChain = ((:) <$> mandatoryUpper <*> many upperExpr) <* optional (char '~')
 
 lowerExpr :: Parser Expr
 lowerExpr = numberLit <|> stringLit <|> list <|> quoted <|> atom
@@ -95,4 +95,4 @@ lower :: Parser Char
 lower = noneOf $ upperCase ++ special
 
 special :: [Char]
-special = ":()\"' \t\n\r1234567890+-.[]{}"
+special = ":()\"' \t\n\r1234567890+-.[]{}~\\"

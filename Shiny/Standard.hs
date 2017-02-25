@@ -78,7 +78,7 @@ stdFuncs = fromList [
             (Var "bitand", func andExpr),
             (Var "b&", func andExpr),
             (Var "bitor", func orExpr),
-            (Var "b\\", func orExpr),
+            (Var "b;", func orExpr),
             (Var "bitxor", func xorExpr),
             (Var "b%", func xorExpr),
             (Var "boolnorm", func boolNorm),
@@ -484,7 +484,7 @@ andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map fromExpr
 {-
  - (bitor) - All zero-bits
  - (bitor x ...) - Bitwise or together
- - (b\) = (bitor)
+ - (b;) = (bitor)
  -}
 orExpr :: [Expr] -> Symbols Expr Expr
 orExpr = pure . Number . foldr (.|.) zeroBits . map fromExpr
