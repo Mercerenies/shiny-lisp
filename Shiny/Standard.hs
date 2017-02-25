@@ -112,6 +112,8 @@ stdFuncs = fromList [
             (Var "up", func powerExpr),
             (Var "mo", func minusOne),
             (Var "po", func plusOne),
+            (Var "mt", func minusTwo),
+            (Var "pt", func plusTwo),
             (Var "split", func splitExpr),
             (Var "sp", func splitExpr),
             (Var "inter", func interExpr),
@@ -125,7 +127,9 @@ stdFuncs = fromList [
             (Var "read", func readStmt),
             (Var "rd", func readStmt),
             (Var "eval", func evalStmt),
-            (Var "ev", func evalStmt)
+            (Var "ev", func evalStmt),
+            (Var "twocurry", func twoCurry),
+            (Var "tc", func twoCurry)
            ]
 
 stdValues :: SymbolTable Expr
@@ -724,6 +728,18 @@ plusOne :: [Expr] -> Symbols Expr Expr
 plusOne xs = plus $ xs ++ [Number 1]
 
 {-
+ - (mt . xs) - Equivalent to (m ,xs 2)
+ -}
+minusTwo :: [Expr] -> Symbols Expr Expr
+minusTwo xs = minus $ xs ++ [Number 2]
+
+{-
+ - (pt . xs) - Equivalent to (p ,xs 2)
+ -}
+plusTwo :: [Expr] -> Symbols Expr Expr
+plusTwo xs = plus $ xs ++ [Number 2]
+
+{-
  - (split) - Returns the digits 0-9 in a string
  - (split x) - Splits the string x into a list, delimited at spaces
  - (split x d) - Splits the string x into a list, delimited by d
@@ -828,3 +844,16 @@ readStmt xs = toExpr <$> mapM (\x -> readStmt [x]) xs
  -}
 evalStmt :: [Expr] -> Symbols Expr Expr
 evalStmt = evalSeq
+
+{-
+ - (twocurry) - Returns 0 (TODO Change this)
+ - (twocurry f) - (((twocurry f) x y ... z) a b ... c) => (f x y ... z a b ... c)
+ - (twocurry f x y .... z) - ((twocurry f x y .... z) a b ... c) => (f x y ... z a b ... c)
+ - (tc) == (twocurry)
+ -}
+twoCurry :: [Expr] -> Symbols Expr Expr
+twoCurry [] = pure $ Number 0
+twoCurry [f] = let t = pure . BuiltIn . Func . s
+                   s xs ys = functionCall f (xs ++ ys)
+               in pure . BuiltIn . Func $ t
+twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
