@@ -127,7 +127,7 @@ stdFuncs = fromList [
             (Var "read", func readStmt),
             (Var "rd", func readStmt),
             (Var "eval", func evalStmt),
-            (Var "ev", func evalStmt),
+            (Var "el", func evalStmt),
             (Var "twocurry", func twoCurry),
             (Var "tc", func twoCurry)
            ]
