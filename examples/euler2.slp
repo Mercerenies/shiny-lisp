@@ -1,0 +1,6 @@
+
+"Ungolfed"
+(print (apply p (filter even (seqwhile (sequence 0) [c, x 4000000]))))
+
+"Golfed"
+Pu:ApP:EEv(sw Sq0 [c,X:*4:Fl])

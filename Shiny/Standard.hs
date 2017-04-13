@@ -34,7 +34,7 @@ stdFuncs = fromList [
             (Var "list", func list),
             (Var "l", func list),
             (Var "print", func puts),
-            (Var "pt", func puts),
+            (Var "pu", func puts),
             (Var "p", func plus),
             (Var "m", func minus),
             (Var "&", func times),
@@ -129,7 +129,9 @@ stdFuncs = fromList [
             (Var "eval", func evalStmt),
             (Var "el", func evalStmt),
             (Var "twocurry", func twoCurry),
-            (Var "tc", func twoCurry)
+            (Var "tc", func twoCurry),
+            (Var "seqwhile", func seqWhile),
+            (Var "sw", func seqWhile)
            ]
 
 stdValues :: SymbolTable Expr
@@ -857,3 +859,17 @@ twoCurry [f] = let t = pure . BuiltIn . Func . s
                    s xs ys = functionCall f (xs ++ ys)
                in pure . BuiltIn . Func $ t
 twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
+
+{-
+ - (seqwhile) - Returns 0 (TODO Change this)
+ - (seqwhile seq) - Given a sequence from (sequence), return the first hundred elements in a list
+ - (seqwhile seq f) - Given a sequence, return the longest prefix whose elements satisfy f
+ - (seqwhile seq f ... g) - Return the longest prefix satisfying f ... g
+ - (sw) == (seqwhile)
+ -}
+seqWhile :: [Expr] -> Symbols Expr Expr
+seqWhile [] = pure $ Number 0
+seqWhile [xs] = fmap toExpr $ sequence [functionCall xs [Number n] | n <- [0..99]]
+seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCall f [x]) fs
+                         stream = [functionCall xs [Number n] | n <- [0..]]
+                     in toExpr <$> (join . fmap sequence $ takeWhileM (>>= cond) stream)

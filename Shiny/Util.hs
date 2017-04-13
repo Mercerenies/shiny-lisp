@@ -1,5 +1,5 @@
 
-module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth) where
+module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM) where
 
 import Data.List
 import Control.Monad
@@ -37,3 +37,12 @@ removeAt n xs = case genericSplitAt n xs of
 wrappedNth :: Integral i => [a] -> i -> Maybe a
 wrappedNth [] _ = Nothing
 wrappedNth xs n = Just $ xs `genericIndex` (n `mod` genericLength xs)
+
+takeWhileM :: Monad m => (a -> m Bool) -> [a] -> m [a]
+takeWhileM _ [] = pure []
+takeWhileM p (x:xs) = do
+  px <- p x
+  if px then
+      (x :) <$> takeWhileM p xs
+  else
+      pure []
