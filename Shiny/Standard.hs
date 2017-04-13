@@ -16,6 +16,7 @@ import Shiny.Symbol
 import Shiny.Eval
 import Shiny.Vars
 import Shiny.Util
+import Shiny.Greek
 
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
@@ -131,7 +132,9 @@ stdFuncs = fromList [
             (Var "twocurry", func twoCurry),
             (Var "tc", func twoCurry),
             (Var "seqwhile", func seqWhile),
-            (Var "sw", func seqWhile)
+            (Var "sw", func seqWhile),
+            (Var "printgreek", func printGreek),
+            (Var "pgk", func printGreek)
            ]
 
 stdValues :: SymbolTable Expr
@@ -873,3 +876,15 @@ seqWhile [xs] = fmap toExpr $ sequence [functionCall xs [Number n] | n <- [0..99
 seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCall f [x]) fs
                          stream = [functionCall xs [Number n] | n <- [0..]]
                      in toExpr <$> (join . fmap sequence $ takeWhileM (>>= cond) stream)
+
+{-
+ - (printgreek) - Returns 0 (TODO Change this)
+ - (printgreek n) - Prints the nth letter of the Greek alphabet
+ - (printgreek n ... m) - Does (printgreek i) for each n ... m
+ - (pgk) == (printgreek)
+ -}
+printGreek :: [Expr] -> Symbols Expr Expr
+printGreek [] = pure $ Number 0
+printGreek [n] = let i = fromInteger (fromExpr n) `mod` length greek
+                 in Nil <$ (liftIO . putStrLn $ greek !! i)
+printGreek ns = Nil <$ mapM (printGreek . return) ns
