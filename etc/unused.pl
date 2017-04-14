@@ -20,7 +20,7 @@ close($fh);
 my %alpha;
 
 @alpha{@alpha} = ();
-#@alpha{ map { my $x = $_; map $x . $_, @alpha } @alpha } = ();
+@alpha{ map { my $x = $_; map $x . $_, @alpha } @alpha } = ();
 
 open($fh, '<', './Shiny/Standard.hs');
 for (<$fh>) {
