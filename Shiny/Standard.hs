@@ -28,7 +28,7 @@ standard = stdFuncs `union` stdValues
 stdFuncs :: SymbolTable Expr
 stdFuncs = fromList [
             (Var "=", func' assignment),
-            (Var "qq", func' quote),
+            (Var "q", func' quote),
             (Var "quote", func' quote),
             (Var "progn", func progn),
             (Var "pgn", func progn),
