@@ -44,7 +44,10 @@ stringLit = char '\"' *> (String <$> rest) <* char '\"'
           rest = contents <|> pure []
 
 numberLit :: Parser Expr
-numberLit = Number <$> try Number.int
+numberLit = do
+  sign <- option 1 (-1 <$ char '\\')
+  value <- try Number.nat
+  return . Number $ sign * value
 
 -- Note on syntax:
 -- (x y z) => (x y z)
@@ -95,4 +98,4 @@ lower :: Parser Char
 lower = noneOf $ upperCase ++ special
 
 special :: [Char]
-special = ":()\"' \t\n\r1234567890+-.[]{}~\\"
+special = ":()\"' \t\n\r1234567890.[]{}~\\"

@@ -45,7 +45,8 @@ printable (String s) = "\"" ++ concatMap escaped s ++ "\""
     where escaped '"' = "\""
           escaped '\\' = "\\"
           escaped x = return x
-printable (Number x) = show x
+printable (Number x) = let sign = if x < 0 then "\\" else ""
+                       in sign ++ show (abs x)
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
 

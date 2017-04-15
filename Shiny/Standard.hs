@@ -132,15 +132,15 @@ stdFuncs = fromList [
             (Var "rd", func readStmt),
             (Var "eval", func evalStmt),
             (Var "el", func evalStmt),
-            (Var "twocurry", func twoCurry),
+            (Var "two-curry", func twoCurry),
             (Var "tc", func twoCurry),
-            (Var "seqwhile", func seqWhile),
+            (Var "seq-while", func seqWhile),
             (Var "sw", func seqWhile),
-            (Var "printgreek", func printGreek),
+            (Var "print-greek", func printGreek),
             (Var "pgk", func printGreek),
-            (Var "eachchar", func eachChar),
+            (Var "each-char", func eachChar),
             (Var "ec", func eachChar),
-            (Var "stringreplace", func stringRepl),
+            (Var "string-replace", func stringRepl),
             (Var "sr", func stringRepl)
            ]
 
@@ -455,14 +455,14 @@ orderingOp order f _ _ xs  = pure $ if assertOrdering order f xs then Number 1 e
 
 {-
  - (range) - Returns 1337
- - (range n) - Returns (rg 1 n)
+ - (range n) - Returns from 1 to n (if n < 1, empty list)
  - (range n1 ... nm) - Returns n1..n2..n3.. ... nm
  - (rg) == (range)
  - Example: (rg 5 7 3) => '(5 6 7 6 5 4 3)
  -}
 rangeExpr :: [Expr] -> Symbols Expr Expr
 rangeExpr [] = pure $ Number 1337
-rangeExpr [x] = rangeExpr [Number 1, x]
+rangeExpr [x] = pure . toExpr . map toExpr $ [1 :: Integer .. fromExpr x]
 rangeExpr xs = pure . toExpr . map Number . rangeHelper $ map fromExpr xs
     where rangeHelper [] = []
           rangeHelper [x] = [x]
@@ -858,10 +858,10 @@ evalStmt :: [Expr] -> Symbols Expr Expr
 evalStmt = evalSeq
 
 {-
- - (twocurry) - Returns 0 (TODO Change this)
- - (twocurry f) - (((twocurry f) x y ... z) a b ... c) => (f x y ... z a b ... c)
- - (twocurry f x y .... z) - ((twocurry f x y .... z) a b ... c) => (f x y ... z a b ... c)
- - (tc) == (twocurry)
+ - (two-curry) - Returns 0 (TODO Change this)
+ - (two-curry f) - (((two-curry f) x y ... z) a b ... c) => (f x y ... z a b ... c)
+ - (two-curry f x y .... z) - ((two-curry f x y .... z) a b ... c) => (f x y ... z a b ... c)
+ - (tc) == (two-curry)
  -}
 twoCurry :: [Expr] -> Symbols Expr Expr
 twoCurry [] = pure $ Number 0
@@ -871,11 +871,11 @@ twoCurry [f] = let t = pure . BuiltIn . Func . s
 twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
 
 {-
- - (seqwhile) - Returns 0 (TODO Change this)
- - (seqwhile seq) - Given a sequence from (sequence), return the first hundred elements in a list
- - (seqwhile seq f) - Given a sequence, return the longest prefix whose elements satisfy f
- - (seqwhile seq f ... g) - Return the longest prefix satisfying f ... g
- - (sw) == (seqwhile)
+ - (seq-while) - Returns 0 (TODO Change this)
+ - (seq-while seq) - Given a sequence from (sequence), return the first hundred elements in a list
+ - (seq-while seq f) - Given a sequence, return the longest prefix whose elements satisfy f
+ - (seq-while seq f ... g) - Return the longest prefix satisfying f ... g
+ - (sw) == (seq-while)
  -}
 seqWhile :: [Expr] -> Symbols Expr Expr
 seqWhile [] = pure $ Number 0
@@ -885,10 +885,10 @@ seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCa
                      in toExpr <$> (join . fmap sequence $ takeWhileM (>>= cond) stream)
 
 {-
- - (printgreek) - Returns 0 (TODO Change this)
- - (printgreek n) - Prints the nth letter of the Greek alphabet
- - (printgreek n ... m) - Does (printgreek i) for each n ... m
- - (pgk) == (printgreek)
+ - (print-greek) - Returns 0 (TODO Change this)
+ - (print-greek n) - Prints the nth letter of the Greek alphabet
+ - (print-greek n ... m) - Does (print-greek i) for each n ... m
+ - (pgk) == (print-greek)
  -}
 printGreek :: [Expr] -> Symbols Expr Expr
 printGreek [] = pure $ Number 0
@@ -897,12 +897,12 @@ printGreek [n] = let i = fromInteger (fromExpr n) `mod` length greek
 printGreek ns = Nil <$ mapM (printGreek . return) ns
 
 {-
- - (eachchar) - Returns 0 (TODO Change this)
- - (eachchar s) - Perform ROT-13 on s
- - (eachchar s f) - Execute f on each character's ASCII value to get a new ASCII value
- - (eachchar s n) - Perform ROT-n on s
- - (eachchar s f ... g) - Cycle through f ... g for the characters
- - (ec) == (eachchar)
+ - (each-char) - Returns 0 (TODO Change this)
+ - (each-char s) - Perform ROT-13 on s
+ - (each-char s f) - Execute f on each character's ASCII value to get a new ASCII value
+ - (each-char s n) - Perform ROT-n on s
+ - (each-char s f ... g) - Cycle through f ... g for the characters
+ - (ec) == (each-char)
  -}
 eachChar :: [Expr] -> Symbols Expr Expr
 eachChar [] = pure $ Number 0
@@ -912,12 +912,12 @@ eachChar (s : fs) = let operation f x = (chr' . fromExpr) <$> functionCall f [to
                     in expressedM (sequence . zipWith operation (cycle fs)) s
 
 {-
- - (stringreplace) - Returns 0 (TODO Change this)
- - (stringreplace x) - Removes all characters which are not alphanumeric or underscore
- - (stringreplace x y) - Removes any instance of the string y in x
- - (stringreplace x y z) - Replaces any instance of y in x with the result of 0-ary function z
- - (stringreplace x y z . t) - Returns 0 (TODO Change this)
- - (sr) == (stringreplace)
+ - (string-replace) - Returns 0 (TODO Change this)
+ - (string-replace x) - Removes all characters which are not alphanumeric or underscore
+ - (string-replace x y) - Removes any instance of the string y in x
+ - (string-replace x y z) - Replaces any instance of y in x with the result of 0-ary function z
+ - (string-replace x y z . t) - Returns 0 (TODO Change this)
+ - (sr) == (string-replace)
  -}
 stringRepl :: [Expr] -> Symbols Expr Expr
 stringRepl [] = pure $ Number 0
