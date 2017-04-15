@@ -23,7 +23,7 @@ import Shiny.Greek
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
  -}
 
--- ///// TODO Commands to reboot the REPL (for convenience) and to undefine variables
+-- ///// TODO Commands to reboot the REPL (for convenience) and to undefine variables (also, wiki)
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
