@@ -58,21 +58,21 @@ stdFuncs = fromList [
             (Var "a", func mapExpr),
             (Var "filter", func filterExpr),
             (Var "e", func filterExpr),
-            (Var "lessthan", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "less-than", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
             (Var "c,", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
-            (Var "lesseq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "less-eq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
             (Var "=,", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
-            (Var "greaterthan", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "greater-than", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var "c;", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
-            (Var "greatereq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "greater-eq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var "=;", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
-            (Var "slessthan", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "str-less-than", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
             (Var ",c", func $ orderingOp (<) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
-            (Var "slesseq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
+            (Var "str-less-eq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
             (Var ",=", func $ orderingOp (<=) (fromExpr :: Expr -> Integer) (Number 5) (Number (-5))),
-            (Var "sgreaterthan", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "str-greater-than", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var ";c", func $ orderingOp (>) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
-            (Var "sgreatereq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
+            (Var "str-greater-eq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var ";=", func $ orderingOp (>=) (fromExpr :: Expr -> Integer) (Number 15) (Number 25)),
             (Var "range", func rangeExpr),
             (Var "rg", func rangeExpr),
@@ -434,15 +434,15 @@ filterExpr (f:xs:_) = do
  - (cmp x ... y) - Returns 1 if the ordering is correct, 0 otherwise
  -
  - Numeric:
- - * lessthan / c,
- - * lesseq / =,
- - * greaterthan / c;
- - * greatereq / =;
+ - * less-than / c,
+ - * less-eq / =,
+ - * greater-than / c;
+ - * greater-eq / =;
  - String:
- - * slessthan / ,c
- - * slesseq / ,=
- - * sgreaterthan / ;c
- - * sgreatereq / ;=
+ - * str-less-than / ,c
+ - * str-less-eq / ,=
+ - * str-greater-than / ;c
+ - * str-greater-eq / ;=
  -}
 
 assertOrdering :: (a -> a -> Bool) -> (Expr -> a) -> [Expr] -> Bool
