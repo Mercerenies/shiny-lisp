@@ -1,6 +1,8 @@
 
-module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM) where
+module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM,
+                  rotateChar, chr', replaceString, replaceStringM) where
 
+import Data.Char
 import Data.List
 import Control.Monad
 
@@ -46,3 +48,25 @@ takeWhileM p (x:xs) = do
       (x :) <$> takeWhileM p xs
   else
       pure []
+
+rotateChar :: Int -> Char -> Char
+rotateChar 0 ch = ch
+rotateChar n ch | isAsciiUpper ch = chr $ (ord ch - ord 'A' + n) `mod` 26 + ord 'A'
+rotateChar n ch | isAsciiLower ch = chr $ (ord ch - ord 'a' + n) `mod` 26 + ord 'a'
+rotateChar _ ch = ch
+
+chr' :: Int -> Char
+chr' n | n >= ord minBound && n <= ord maxBound = chr n
+       | otherwise = chr 0
+
+replaceString :: Eq a => [a] -> [a] -> [a] -> [a]
+replaceString [] _  _  = []
+replaceString as bs cs
+    | take (length bs) as == bs = cs ++ replaceString (drop (length bs) as) bs cs
+    | otherwise = head as : replaceString (tail as) bs cs
+
+replaceStringM :: (Applicative m, Eq a) => [a] -> [a] -> m [a] -> m [a]
+replaceStringM [] _  _   = pure []
+replaceStringM as bs mcs
+    | take (length bs) as == bs = (++) <$> mcs <*> replaceStringM (drop (length bs) as) bs mcs
+    | otherwise = (head as :) <$> replaceStringM (tail as) bs mcs

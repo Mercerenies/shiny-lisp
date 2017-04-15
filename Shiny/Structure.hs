@@ -3,7 +3,7 @@
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
                        func, func', exprToList, exprToList', prepend,
-                       FromExpr(..), ToExpr(..), expressed,
+                       FromExpr(..), ToExpr(..), expressed, expressedM,
                        eql, bindArgs) where
 
 import Shiny.Symbol
@@ -88,8 +88,8 @@ coerceToNumber (Cons _ y) = 1 + coerceToNumber y
 coerceToNumber (Atom s) = coerceToNumber (String s)
 coerceToNumber (String s) = maybe 0 fst . listToMaybe $ reads s
 coerceToNumber (Number x) = x
-coerceToNumber (BuiltIn _) = -1
-coerceToNumber (Special _) = -1
+coerceToNumber (BuiltIn _) = 0
+coerceToNumber (Special _) = 0
 
 coerceToString :: Expr -> String
 coerceToString Nil = ""
@@ -126,6 +126,9 @@ instance FromExpr Expr where
 instance FromExpr Integer where
     fromExpr = coerceToNumber
 
+instance FromExpr Int where
+    fromExpr = fromInteger . coerceToNumber
+
 instance FromExpr String where
     fromExpr = coerceToString
 
@@ -141,6 +144,9 @@ instance ToExpr Expr where
 instance ToExpr Integer where
     toExpr = Number
 
+instance ToExpr Int where
+    toExpr = Number . toInteger
+
 instance ToExpr String where
     toExpr = String
 
@@ -152,6 +158,9 @@ instance ToExpr [Expr] where
 
 expressed :: (FromExpr a, ToExpr b) => (a -> b) -> Expr -> Expr
 expressed f = toExpr . f . fromExpr
+
+expressedM :: (FromExpr a, ToExpr b, Functor f) => (a -> f b) -> Expr -> f Expr
+expressedM f = fmap toExpr . f . fromExpr
 
 eql :: Expr -> Expr -> Bool
 eql Nil Nil = True

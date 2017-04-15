@@ -6,6 +6,7 @@ import Data.Monoid
 import Data.Foldable
 import Data.List hiding (union)
 import Data.Bits
+import Data.Char
 import Data.Function
 import Control.Monad
 import Control.Monad.IO.Class
@@ -21,6 +22,8 @@ import Shiny.Greek
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
  -}
+
+-- ///// TODO Commands to reboot the REPL (for convenience) and to undefine variables
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
@@ -134,7 +137,11 @@ stdFuncs = fromList [
             (Var "seqwhile", func seqWhile),
             (Var "sw", func seqWhile),
             (Var "printgreek", func printGreek),
-            (Var "pgk", func printGreek)
+            (Var "pgk", func printGreek),
+            (Var "eachchar", func eachChar),
+            (Var "ec", func eachChar),
+            (Var "stringreplace", func stringRepl),
+            (Var "sr", func stringRepl)
            ]
 
 stdValues :: SymbolTable Expr
@@ -439,12 +446,12 @@ filterExpr (f:xs:_) = do
  -}
 
 assertOrdering :: (a -> a -> Bool) -> (Expr -> a) -> [Expr] -> Bool
-assertOrdering ord f xs = all (uncurry ord) . pairs $ map f xs
+assertOrdering order f xs = all (uncurry order) . pairs $ map f xs
 
 orderingOp :: (a -> a -> Bool) -> (Expr -> a) -> Expr -> Expr -> ([Expr] -> Symbols Expr Expr)
 orderingOp _   _ a _ []  = pure a
 orderingOp _   _ _ b [_] = pure b
-orderingOp ord f _ _ xs  = pure $ if assertOrdering ord f xs then Number 1 else Number 0
+orderingOp order f _ _ xs  = pure $ if assertOrdering order f xs then Number 1 else Number 0
 
 {-
  - (range) - Returns 1337
@@ -571,8 +578,8 @@ compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFu
 sortExpr :: [Expr] -> Symbols Expr Expr
 sortExpr [] = pure $ toExpr (Number <$> [1..10])
 sortExpr [xs] = pure . (expressed $ sortBy (compare `on` (fromExpr :: Expr -> Integer))) $ xs
-sortExpr [f, xs] = toExpr <$> sortByM ord (fromExpr xs)
-    where ord x y = do
+sortExpr [f, xs] = toExpr <$> sortByM order (fromExpr xs)
+    where order x y = do
             le <- fromExpr <$> functionCall f [x, y]
             ge <- fromExpr <$> functionCall f [y, x]
             pure $ case (le, ge) of
@@ -888,3 +895,35 @@ printGreek [] = pure $ Number 0
 printGreek [n] = let i = fromInteger (fromExpr n) `mod` length greek
                  in Nil <$ (liftIO . putStrLn $ greek !! i)
 printGreek ns = Nil <$ mapM (printGreek . return) ns
+
+{-
+ - (eachchar) - Returns 0 (TODO Change this)
+ - (eachchar s) - Perform ROT-13 on s
+ - (eachchar s f) - Execute f on each character's ASCII value to get a new ASCII value
+ - (eachchar s n) - Perform ROT-n on s
+ - (eachchar s f ... g) - Cycle through f ... g for the characters
+ - (ec) == (eachchar)
+ -}
+eachChar :: [Expr] -> Symbols Expr Expr
+eachChar [] = pure $ Number 0
+eachChar [s] = pure $ expressed (map $ rotateChar 13) s
+eachChar [s, Number n] = pure $ expressed (map . rotateChar $ fromInteger n) s
+eachChar (s : fs) = let operation f x = (chr' . fromExpr) <$> functionCall f [toExpr $ ord x]
+                    in expressedM (sequence . zipWith operation (cycle fs)) s
+
+{-
+ - (stringreplace) - Returns 0 (TODO Change this)
+ - (stringreplace x) - Removes all characters which are not alphanumeric or underscore
+ - (stringreplace x y) - Removes any instance of the string y in x
+ - (stringreplace x y z) - Replaces any instance of y in x with the result of 0-ary function z
+ - (stringreplace x y z . t) - Returns 0 (TODO Change this)
+ - (sr) == (stringreplace)
+ -}
+stringRepl :: [Expr] -> Symbols Expr Expr
+stringRepl [] = pure $ Number 0
+stringRepl [x] = pure $ expressed (filter (liftM2 (||) isAlphaNum (== '_'))) x
+stringRepl [x, y] = pure . toExpr $ replaceString (fromExpr x) (fromExpr y) ""
+stringRepl [x, y, z] = let oper :: Symbols Expr String
+                           oper = fromExpr <$> functionCall z []
+                       in toExpr <$> replaceStringM (fromExpr x) (fromExpr y) oper
+stringRepl xs = stringRepl $ take 3 xs
