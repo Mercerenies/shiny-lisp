@@ -50,8 +50,10 @@ stdFuncs = fromList [
             (Var "sq", func sequenceExpr),
             (Var "take", func takeExpr),
             (Var "tk", func takeExpr),
+            (Var "car", func takeExpr),
             (Var "drop", func dropExpr),
             (Var "dp", func dropExpr),
+            (Var "cdr", func dropExpr),
             (Var "apply", func applyExpr),
             (Var "ap", func applyExpr),
             (Var "map", func mapExpr),
@@ -354,7 +356,7 @@ listCdr z = z
  - (take xs) - Returns the first element of xs (or xs itself, if not a cons)
  - (take n xs) - Returns the first n elements of xs (n is coerced to integer)
  - {take n m ... xs) - Returns the first n elements, then the next m, then ... in a list of lists
- - (tk) == (take)
+ - (tk) == (take) == (cdr)
  - Example of that last one: (tk 2 3 2 '(1 2 3 4 5 6 7 8 9)) => '((1 2) (3 4 5) (6 7))
  -}
 takeExpr :: [Expr] -> Symbols Expr Expr
@@ -370,7 +372,7 @@ takeExpr xs = do
  - (drop xs) - Drops the first element of xs (returns xs if not a cons)
  - (drop n xs) - Drops the first n elements of xs (n is coerced to integer)
  - {drop n m ... xs) - Drops the first n elements, then the next m, then ... in a list of lists
- - (dp) == (drop)
+ - (dp) == (drop) == (car)
  - Example of that last one: (dp 2 3 2 '(1 2 3 4)) => '((3 4) (2 3 4) (3 4))
  -}
 dropExpr :: [Expr] -> Symbols Expr Expr
