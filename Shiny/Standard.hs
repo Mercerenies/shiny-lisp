@@ -18,6 +18,7 @@ import Shiny.Eval
 import Shiny.Vars
 import Shiny.Util
 import Shiny.Greek
+import qualified Shiny.Case as ShinyCase
 
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
@@ -143,7 +144,11 @@ stdFuncs = fromList [
             (Var "each-char", func eachChar),
             (Var "ec", func eachChar),
             (Var "string-replace", func stringRepl),
-            (Var "sr", func stringRepl)
+            (Var "sr", func stringRepl),
+            (Var "uc", func $ caseOp toUpper),
+            (Var "ucx", func $ caseOp ShinyCase.toUpperCase),
+            (Var "lc", func $ caseOp toLower),
+            (Var "lcx", func $ caseOp ShinyCase.toLowerCase)
            ]
 
 stdValues :: SymbolTable Expr
@@ -574,8 +579,8 @@ compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFu
  - (sort f xs) - Using the given <= comparator, sort the list
  - (sort f x y ... z) - Returns a list containing the given elements, sorted
  - (st) = (sort)
- - IMPORTANT NOTE: The sorting function should not carry side effects; it will be called an unspecified number
- -                 of times.
+ - IMPORTANT NOTE: The sorting function should not carry side effects; it will be called an
+ -                 unspecified number of times.
  -}
 sortExpr :: [Expr] -> Symbols Expr Expr
 sortExpr [] = pure $ toExpr (Number <$> [1..10])
@@ -918,7 +923,7 @@ eachChar (s : fs) = let operation f x = (chr' . fromExpr) <$> functionCall f [to
  - (string-replace x) - Removes all characters which are not alphanumeric or underscore
  - (string-replace x y) - Removes any instance of the string y in x
  - (string-replace x y z) - Replaces any instance of y in x with the result of 0-ary function z
- - (string-replace x y z . t) - Returns 0 (TODO Change this)
+ - (string-replace x y z . t) - Ignores the remaining arguments (TODO Change this)
  - (sr) == (string-replace)
  -}
 stringRepl :: [Expr] -> Symbols Expr Expr
@@ -929,3 +934,20 @@ stringRepl [x, y, z] = let oper :: Symbols Expr String
                            oper = fromExpr <$> functionCall z []
                        in toExpr <$> replaceStringM (fromExpr x) (fromExpr y) oper
 stringRepl xs = stringRepl $ take 3 xs
+
+{-
+ - All of the casing operators work the same.
+ - (casing) - Returns 0 (TODO Change this)
+ - (casing x) - Converts the argument to the specified case, using standard casing rules
+ - (casing x y . xs) - Converts each argument to the specified case, returning a list
+ -
+ - Cases:
+ - * uc  - Standard uppercase
+ - * lc  - Standard lowercase
+ - * ucx - Uppercase using ShinyLisp rules
+ - * lcx - Lowercase using ShinyLisp rules
+ -}
+caseOp :: (Char -> Char) -> [Expr] -> Symbols Expr Expr
+caseOp _  [] = pure $ Number 0
+caseOp op [x] = pure $ expressed (map op) x
+caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
