@@ -293,17 +293,17 @@ pairs (x:y:ys) = (x, y) : pairs (y:ys)
 
 sequential :: [Expr] -> Func
 sequential xs = Func helper
-    where helper [] = helper [Number 0]
-          helper (n:_) = do
-            n' <- (fromExpr <$> evaluate n) :: Symbols Expr Integer
-            pure $ xs `genericIndex` n'
+    where helper :: [Expr] -> Symbols Expr Expr
+          helper [] = helper [Number 0]
+          helper (n:_) = let n' = fromExpr n :: Integer
+                         in pure $ xs `genericIndex` n'
 
 sequential' :: [Expr] -> Func
 sequential' xs = Func helper
-    where helper [] = helper [Number 1]
-          helper (n:_) = do
-            n' <- (fromExpr <$> evaluate n) :: Symbols Expr Integer
-            pure . toExpr $ genericTake n' xs
+    where helper :: [Expr] -> Symbols Expr Expr
+          helper [] = helper [Number 1]
+          helper (n:_) = let n' = fromExpr n :: Integer
+                         in pure . toExpr $ genericTake n' xs
 
 {-
  - (sq) - Returns (sq 0)
@@ -366,7 +366,7 @@ listCdr z = z
  -}
 takeExpr :: [Expr] -> Symbols Expr Expr
 takeExpr [] = pure $ Number 10000
-takeExpr [x] = listCar <$> evaluate x
+takeExpr [x] = pure $ listCar x
 takeExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
@@ -382,7 +382,7 @@ takeExpr xs = do
  -}
 dropExpr :: [Expr] -> Symbols Expr Expr
 dropExpr [] = pure $ Number 2048
-dropExpr [x] = listCdr <$> evaluate x
+dropExpr [x] = pure $ listCdr x
 dropExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
