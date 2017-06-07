@@ -3,4 +3,4 @@
 +F:<FrRg
 
 "Then print the result"
-(print (map f (range 0 7)))
+(puts (map f (range 0 7)))

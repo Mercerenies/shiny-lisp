@@ -1,6 +1,6 @@
 
 "Ungolfed"
-(print (apply p (filter even (seq-while (sequence 0) [less-than x 4000000]))))
+(puts (apply p (filter even (seq-while (sequence 0) [less-than x 4000000]))))
 
 "Golfed"
 Pu:ApP:EEv(sw Sq0 [c,X:*4:Fl])

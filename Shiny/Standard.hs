@@ -37,7 +37,7 @@ stdFuncs = fromList [
             (Var "pgn", func progn),
             (Var "list", func list),
             (Var "l", func list),
-            (Var "print", func puts),
+            (Var "puts", func puts),
             (Var "pu", func puts),
             (Var "p", func plus),
             (Var "m", func minus),
@@ -180,7 +180,7 @@ assignment xs = do
  - (quote) - Return nil
  - (quote x) - Return the term x without evaluating it
  - (quote x ...) - Return x and ignore the other arguments
- - In any case, (qq) may be used in place of (quote)
+ - In any case, (q) may be used in place of (quote)
  -}
 quote :: [Expr] -> Symbols Expr Expr
 quote [] = pure Nil
@@ -202,8 +202,8 @@ list :: [Expr] -> Symbols Expr Expr
 list = pure . toExpr
 
 {-
- - (print . any) - Prints each element (evaluated), on its own line; returns Nil
- - (print) == (pt)
+ - (puts . any) - Prints each element (evaluated), on its own line; returns Nil
+ - (puts) == (pu)
  -}
 puts :: [Expr] -> Symbols Expr Expr
 puts xs = do
