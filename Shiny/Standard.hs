@@ -239,7 +239,7 @@ times xs = do
  - (/) - 10 (TODO may become 1/2 in the future)
  - (/ x) - Return 0 (TODO to be reciprocal in the future)
  - (/ x y . any) - Divide latter elements from the first
- - Division by zero yields the divisor
+ - Division by zero yields the dividend
  -}
 divs :: [Expr] -> Symbols Expr Expr
 divs [] = pure $ Number 10
