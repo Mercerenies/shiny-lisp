@@ -361,12 +361,13 @@ listCdr z = z
  - (take xs) - Returns the first element of xs (or xs itself, if not a cons)
  - (take n xs) - Returns the first n elements of xs (n is coerced to integer)
  - {take n m ... xs) - Returns the first n elements, then the next m, then ... in a list of lists
- - (tk) == (take) == (cdr)
+ - (tk) == (take) == (car)
  - Example of that last one: (tk 2 3 2 '(1 2 3 4 5 6 7 8 9)) => '((1 2) (3 4 5) (6 7))
  -}
 takeExpr :: [Expr] -> Symbols Expr Expr
 takeExpr [] = pure $ Number 10000
 takeExpr [x] = pure $ listCar x
+takeExpr [n, x] = pure . toExpr $ consTake (fromExpr n) (fromExpr x)
 takeExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
@@ -377,12 +378,13 @@ takeExpr xs = do
  - (drop xs) - Drops the first element of xs (returns xs if not a cons)
  - (drop n xs) - Drops the first n elements of xs (n is coerced to integer)
  - {drop n m ... xs) - Drops the first n elements, then the next m, then ... in a list of lists
- - (dp) == (drop) == (car)
+ - (dp) == (drop) == (cdr)
  - Example of that last one: (dp 2 3 2 '(1 2 3 4)) => '((3 4) (2 3 4) (3 4))
  -}
 dropExpr :: [Expr] -> Symbols Expr Expr
 dropExpr [] = pure $ Number 2048
 dropExpr [x] = pure $ listCdr x
+dropExpr [n, x] = pure . toExpr $ consDrop (fromExpr n) (fromExpr x)
 dropExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
