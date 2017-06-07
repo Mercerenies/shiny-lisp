@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ghc -Wall -o Shiny Main.hs
+ghc -Wall -o Shiny.out Main.hs
