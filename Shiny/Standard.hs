@@ -161,14 +161,14 @@ standardState = [standard]
 
 {-
  - (=) No-op (TODO Something?)
- - (= x) Set the variable x equal to nil; returns nil (TODO should this act like (= # x)?)
+ - (= x) Set the special variable % to the value x; returns x
  - (= x y) Set x equal to y (y is evaluated); returns y
  - (= x1 .. xn y) Set x1, x2, ... xn equal to y (y is evaluated once); returns y
  - In any case, any variable xi's which are not atoms are ignored
  -}
 assignment :: [Expr] -> Symbols Expr Expr
 assignment [] = pure Nil
-assignment [x] = assignment [x, Nil]
+assignment [x] = assignment [Atom "%", x]
 assignment xs = do
   let y = last xs
       xs' = toVars $ init xs
