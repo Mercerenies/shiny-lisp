@@ -274,7 +274,7 @@ ifStmt (x:y:xs) = do
 
 {-
  - (==) - Returns 100
- - (== x) - Returns 1000
+ - (== x) - Returns 1,000
  - (== x y . any) - Returns 1 if all expressions (all evaluated) are equal, 0 otherwise
  -}
 equality :: [Expr] -> Symbols Expr Expr
@@ -367,7 +367,7 @@ listCdr z = z
 takeExpr :: [Expr] -> Symbols Expr Expr
 takeExpr [] = pure $ Number 10000
 takeExpr [x] = pure $ listCar x
-takeExpr [n, x] = pure . toExpr $ consTake (fromExpr n) (fromExpr x)
+takeExpr [n, x] = pure . toExpr $ consTake (fromExpr n) x
 takeExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
@@ -384,7 +384,7 @@ takeExpr xs = do
 dropExpr :: [Expr] -> Symbols Expr Expr
 dropExpr [] = pure $ Number 2048
 dropExpr [x] = pure $ listCdr x
-dropExpr [n, x] = pure . toExpr $ consDrop (fromExpr n) (fromExpr x)
+dropExpr [n, x] = pure . toExpr $ consDrop (fromExpr n) x
 dropExpr xs = do
   let lst = last xs
       nums = fromExpr <$> init xs
