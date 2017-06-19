@@ -1,0 +1,29 @@
+
+(==) 100
+(== x) 1,000
+(take) 10,000
+(drop) 2,048
+(apply) 2,147,483,647
+(map) "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+(filter) "abcdefghijklmnopqrstuvwxyz"
+(cmp) GT/GE 15
+(cmp) LT/LE 5
+(cmp x) GT/GE 25
+(cmp x) LT/LE -5
+(range) 1,337
+(cons) (() . ())
+(bitand) -1
+(bitor) 0
+(bitxor) 256
+(boolnorm) 999
+(sort) (1 2 3 4 5 6 7 8 9 10)
+(divides) -100
+(foldl) 1,000,000
+(foldr) -1,000,000
+(mod) 500
+(even) 64
+(odd) 32
+(prime) 128
+(up) 9,999
+(split) "0123456789"
+(inter) ")!@#$%^&*("
