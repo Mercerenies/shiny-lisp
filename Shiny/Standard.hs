@@ -148,7 +148,9 @@ stdFuncs = fromList [
             (Var "uc", func $ caseOp toUpper),
             (Var "ucx", func $ caseOp ShinyCase.toUpperCase),
             (Var "lc", func $ caseOp toLower),
-            (Var "lcx", func $ caseOp ShinyCase.toLowerCase)
+            (Var "lcx", func $ caseOp ShinyCase.toLowerCase),
+            (Var "sum-digits", func sumDigits),
+            (Var "sd", func sumDigits)
            ]
 
 stdValues :: SymbolTable Expr
@@ -949,3 +951,16 @@ caseOp :: (Char -> Char) -> [Expr] -> Symbols Expr Expr
 caseOp _  [] = pure $ Number 0
 caseOp op [x] = pure $ expressed (map op) x
 caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
+
+{-
+ - (sum-digits) - Returns 0 (TODO Change this)
+ - (sum-digits x) - Sums the digits of x
+ - (sum-digits x . y) - Sums the digits of each value and sums the values
+ - (sd) == (sum-digits)
+ - Note: Negative numbers are always absolute-valued before applying this function
+ -}
+sumDigits :: [Expr] -> Symbols Expr Expr
+sumDigits [] = pure $ Number 0
+sumDigits xs = let digits :: Integer -> [Integer]
+                   digits = map (toInteger . subtract (ord '0') . ord) . show . abs
+               in pure . toExpr . sum . map (sum . digits . fromExpr) $ xs

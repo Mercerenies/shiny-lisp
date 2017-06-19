@@ -1,6 +1,8 @@
 
 module Shiny.Vars(Var(..), argumentNames, argListName, argumentBindings, isImplicitlyGlobal) where
 
+-- TODO Unicode capitalization support
+
 newtype Var = Var { getVar :: String }
     deriving (Show, Read, Eq, Ord)
 

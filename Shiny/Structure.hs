@@ -36,6 +36,8 @@ toVar _ = Nothing
 toVars :: [Expr] -> [Var]
 toVars = catMaybes . map toVar
 
+-- TODO #<BuiltIn> prints even if its a higher-order function outputted from (compose), etc.
+
 -- Converts to a user-friendly string, while the Show instance converts to a Haskell-friendly string
 printable :: Expr -> String
 printable Nil = "()"
