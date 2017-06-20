@@ -24,7 +24,7 @@ my %alpha;
 
 open($fh, '<', './Shiny/Standard.hs');
 for (<$fh>) {
-    $alpha{$1}++ if /"([^"]{0,2})"/;
+    $alpha{$1}++ if /Var "([^"]{0,2})"/;
 }
 close($fh);
 
