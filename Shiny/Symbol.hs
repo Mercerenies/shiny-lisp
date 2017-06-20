@@ -1,8 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Shiny.Symbol(SymbolTable, Symbols(..), throwS, catchS, runSymbols, runSymbols', emptyState,
-                    hasSymbol, getSymbol, setSymbol, defSymbol,
-                    getSymbolOrDefault, getSymbolDefining, globalDefSymbol, setOrDefSymbol,
+                    hasSymbol, getSymbol, setSymbol, defSymbol, undefSymbol,
+                    getSymbolOrDefault, getSymbolMaybe, getSymbolDefining,
+                    globalDefSymbol, setOrDefSymbol,
                     pushStack, popStack) where
 
 import Shiny.Vars
@@ -64,6 +65,13 @@ defSymbol v y = do
     [] -> throwS "call stack is empty"
     (x:xs) -> put $ Map.insert v y x : xs
 
+undefSymbol :: Var -> Symbols e ()
+undefSymbol v = get >>= helper >>= put
+    where helper [] = throwS "call stack is empty"
+          helper (x:xs)
+              | Map.member v x = pure $ Map.delete v x : xs
+              | otherwise = helper xs
+
 getSymbolOrDefault :: Var -> e -> Symbols e e
 getSymbolOrDefault v def = do
   exists <- hasSymbol v
@@ -71,6 +79,14 @@ getSymbolOrDefault v def = do
       getSymbol v
   else
       pure def
+
+getSymbolMaybe :: Var -> Symbols e (Maybe e)
+getSymbolMaybe v = do
+  exists <- hasSymbol v
+  if exists then
+      Just <$> getSymbol v
+  else
+      pure Nothing
 
 getSymbolDefining :: Var -> e -> Symbols e e
 getSymbolDefining v def = do

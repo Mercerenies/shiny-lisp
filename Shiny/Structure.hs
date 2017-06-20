@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
 module Shiny.Structure(Func(..), Expr(..),
-                       toVar, toVars, printable,
+                       toVar, toVars, printable, userPrint,
                        func, func', exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
                        eql, bindArgs) where
@@ -51,6 +51,10 @@ printable (Number x) = let sign = if x < 0 then "\\" else ""
                        in sign ++ show (abs x)
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
+
+userPrint :: Expr -> String
+userPrint (String s) = s
+userPrint x = printable x
 
 printCons :: Expr -> Expr -> String
 printCons x (Cons y z) = printable x ++ " " ++ printCons y z

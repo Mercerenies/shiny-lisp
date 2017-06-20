@@ -150,7 +150,12 @@ stdFuncs = fromList [
             (Var "lc", func $ caseOp toLower),
             (Var "lcx", func $ caseOp ShinyCase.toLowerCase),
             (Var "sum-digits", func sumDigits),
-            (Var "sd", func sumDigits)
+            (Var "sd", func sumDigits),
+            (Var "gets", func gets),
+            (Var "ge", func gets),
+            (Var "-", func' interaction),
+            (Var "print", func putsPrint),
+            (Var "pn", func putsPrint)
            ]
 
 stdValues :: SymbolTable Expr
@@ -209,12 +214,17 @@ list :: [Expr] -> Symbols Expr Expr
 list = pure . toExpr
 
 {-
+ - (puts) - Prints %
  - (puts . any) - Prints each element (evaluated), on its own line; returns Nil
  - (puts) == (pu)
  -}
 puts :: [Expr] -> Symbols Expr Expr
+puts [] = do
+  value <- getSymbolOrDefault (Var "%") Nil
+  liftIO . putStrLn . userPrint $ value
+  return Nil
 puts xs = do
-  forM_ xs $ \x -> liftIO . putStrLn $ printable x
+  forM_ xs $ \x -> liftIO . putStrLn $ userPrint x
   return Nil
 
 {-
@@ -964,3 +974,53 @@ sumDigits [] = pure $ Number 0
 sumDigits xs = let digits :: Integer -> [Integer]
                    digits = map (toInteger . subtract (ord '0') . ord) . show . abs
                in pure . toExpr . sum . map (sum . digits . fromExpr) $ xs
+
+{-
+ - (gets) - Reads a single line of input from the user, returning a string
+ - (gets n) - Reads n lines of input from the user, returning a list of strings (even if n = 1)
+ - (gets n . m) - Reads n lines of input
+ - (ge) == (gets)
+ -}
+gets :: [Expr] -> Symbols Expr Expr
+gets [] = toExpr <$> liftIO getLine
+gets [n] = liftIO . fmap (toExpr . map toExpr) $ replicateM (fromExpr n) getLine
+gets (n:_) = gets [n]
+
+{-
+ - (- . forms) - Evaluates the forms for each line of input provided, returning the final value
+ -   This is a general looping construct designed for convenient IO programs. For each line of input,
+ -   the variable % is bound to the line of input, then the forms are executed, then % is printed to
+ -   the screen. At the end of the final iteration, if % was bound by the loop, then % is unbound to
+ -   prevent a redundant print.
+ -}
+interaction :: [Expr] -> Symbols Expr Expr
+interaction xs = do
+  bound <- hasSymbol (Var "%")
+  input <- lines <$> liftIO getContents
+  result <- forM input $ \y -> do
+                   setOrDefSymbol (Var "%") $ toExpr y
+                   val <- evalSeq xs
+                   percent <- getSymbolMaybe (Var "%")
+                   case percent of
+                     Nothing -> pure ()
+                     Just x -> liftIO $ putStrLn (userPrint x)
+                   return val
+  when bound $ undefSymbol (Var "%")
+  return $ case result of
+             [] -> Nil
+             zs -> last zs
+
+{-
+ - (print) - Prints %
+ - (print . any) - Prints each element (evaluated), on its own line; returns Nil
+ - (print) == (pn)
+ - Note that (print) prints a representation-friendly form while (puts) prints a user-friendly form
+ -}
+putsPrint :: [Expr] -> Symbols Expr Expr
+putsPrint [] = do
+  value <- getSymbolOrDefault (Var "%") Nil
+  liftIO . putStrLn . userPrint $ value
+  return Nil
+putsPrint xs = do
+  forM_ xs $ \x -> liftIO . putStrLn $ printable x
+  return Nil
