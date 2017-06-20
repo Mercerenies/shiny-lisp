@@ -159,7 +159,11 @@ stdFuncs = fromList [
             (Var "ge", func gets),
             (Var "-", func' interaction),
             (Var "print", func putsPrint),
-            (Var "pn", func putsPrint)
+            (Var "pn", func putsPrint),
+            (Var "define", func' defineVar),
+            (Var ",-", func' defineVar),
+            (Var "undefine", func' undefineVar),
+            (Var "-,", func' undefineVar)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1042,4 +1046,33 @@ putsPrint [] = do
   return Nil
 putsPrint xs = do
   forM_ xs $ \x -> liftIO . putStrLn $ printable x
+  return Nil
+
+{-
+ - (define) - Binds the variable % in the local scope
+ - (define x) - Binds the variable x (not evaluated) in the local scope, returning its value
+ - (define x ... y) - Binds each variable locally, returning the value of the last one
+ - (define) == (,-)
+ -}
+defineVar :: [Expr] -> Symbols Expr Expr
+defineVar [] = defineVar [Atom "%"]
+defineVar xs = do
+  result <- forM (toVars xs) $ \x -> do
+                 prev <- getSymbolOrDefault x Nil
+                 defSymbol x prev
+                 return prev
+  -- We know that xs is nonempty since the [] case is handled above, so result is nonempty
+  return $ last result
+
+{-
+ - (undefine) - Unbinds the tightest binding of %
+ - (undefine x ... y) - Unbinds each variable (not evaluated), skipping any which do not exist
+ - (undefine) == (-,)
+ -}
+undefineVar :: [Expr] -> Symbols Expr Expr
+undefineVar [] = undefineVar [Atom "%"]
+undefineVar xs = do
+  forM_ (toVars xs) $ \x -> do
+                   exists <- hasSymbol x
+                   when exists $ undefSymbol x
   return Nil

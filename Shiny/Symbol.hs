@@ -67,7 +67,7 @@ defSymbol v y = do
 
 undefSymbol :: Var -> Symbols e ()
 undefSymbol v = get >>= helper >>= put
-    where helper [] = throwS "call stack is empty"
+    where helper [] = throwS "variable does not exist"
           helper (x:xs)
               | Map.member v x = pure $ Map.delete v x : xs
               | otherwise = helper xs
