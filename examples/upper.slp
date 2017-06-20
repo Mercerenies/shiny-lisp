@@ -1,0 +1,3 @@
+
+"This script will convert stdin to uppercase and output it"
+_:+:Uc
