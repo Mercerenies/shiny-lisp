@@ -290,12 +290,12 @@ ifStmt (x:y:xs) = do
 
 {-
  - (==) - Returns 100
- - (== x) - Returns 1,000
+ - (== x) - Returns whether % equals x
  - (== x y . any) - Returns true iff all expressions (all evaluated) are equal
  -}
 equality :: [Expr] -> Symbols Expr Expr
 equality [] = pure $ Number 100
-equality [_] = pure $ Number 1000
+equality [x] = getSymbolOrDefault (Var "%") Nil >>= \y -> equality [x, y]
 equality xs = return . toExpr . all (uncurry eql) $ pairs xs
 
 pairs :: [a] -> [(a, a)]
@@ -743,27 +743,35 @@ powerExpr xs = let xs' = map fromExpr xs
                in pure . Number $ foldr1 h xs'
 
 {-
+ - (mo) - Returns % minus 1
  - (mo . xs) - Equivalent to (m ,@xs 1)
  -}
 minusOne :: [Expr] -> Symbols Expr Expr
+minusOne [] = getSymbolOrDefault (Var "%") Nil >>= \x -> minusOne [x]
 minusOne xs = minus $ xs ++ [Number 1]
 
 {-
+ - (po) - Returns % plus 1
  - (po . xs) - Equivalent to (p ,@xs 1)
  -}
 plusOne :: [Expr] -> Symbols Expr Expr
+plusOne [] = getSymbolOrDefault (Var "%") Nil >>= \x -> plusOne [x]
 plusOne xs = plus $ xs ++ [Number 1]
 
 {-
+ - (mt) - Returns % minus 2
  - (mt . xs) - Equivalent to (m ,@xs 2)
  -}
 minusTwo :: [Expr] -> Symbols Expr Expr
+minusTwo [] = getSymbolOrDefault (Var "%") Nil >>= \x -> minusTwo [x]
 minusTwo xs = minus $ xs ++ [Number 2]
 
 {-
+ - (pt) - Returns % plus 2
  - (pt . xs) - Equivalent to (p ,@xs 2)
  -}
 plusTwo :: [Expr] -> Symbols Expr Expr
+plusTwo [] = getSymbolOrDefault (Var "%") Nil >>= \x -> plusTwo [x]
 plusTwo xs = plus $ xs ++ [Number 2]
 
 {-
@@ -873,13 +881,13 @@ evalStmt :: [Expr] -> Symbols Expr Expr
 evalStmt = evalSeq
 
 {-
- - (two-curry) - Returns 0 (TODO Change this)
+ - (two-curry) - Returns 1,000
  - (two-curry f) - (((two-curry f) x y ... z) a b ... c) => (f x y ... z a b ... c)
  - (two-curry f x y .... z) - ((two-curry f x y .... z) a b ... c) => (f x y ... z a b ... c)
  - (tc) == (two-curry)
  -}
 twoCurry :: [Expr] -> Symbols Expr Expr
-twoCurry [] = pure $ Number 0
+twoCurry [] = pure $ Number 1000
 twoCurry [f] = let t = pure . BuiltIn . Func . s
                    s xs ys = functionCall f (xs ++ ys)
                in pure . BuiltIn . Func $ t
