@@ -2,6 +2,7 @@
 
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable, userPrint,
+                       true, false,
                        func, func', exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
                        eql, bindArgs) where
@@ -56,6 +57,12 @@ userPrint :: Expr -> String
 userPrint (String s) = s
 userPrint x = printable x
 
+true :: Expr
+true = Number 1
+
+false :: Expr
+false = Number 0
+
 printCons :: Expr -> Expr -> String
 printCons x (Cons y z) = printable x ++ " " ++ printCons y z
 printCons x Nil        = printable x
@@ -82,8 +89,8 @@ exprFromList [] = Nil
 exprFromList (x:xs) = Cons x $ exprFromList xs
 
 exprFromBool :: Bool -> Expr
-exprFromBool False = Number 0
-exprFromBool True = Number 1
+exprFromBool False = false
+exprFromBool True = true
 
 prepend :: [Expr] -> Expr -> Expr
 prepend []     y = y

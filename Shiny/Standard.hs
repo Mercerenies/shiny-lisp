@@ -26,6 +26,9 @@ import qualified Shiny.Case as ShinyCase
  -}
 
 -- ///// TODO Commands to reboot the REPL (for convenience) and to undefine variables (also, wiki)
+-- ///// What about a stringbuilder interface? Or a generalized way of having interfaces?
+--       Sort of a global register system for each interface to communicate without using explicit
+--       variable names.
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
@@ -288,16 +291,12 @@ ifStmt (x:y:xs) = do
 {-
  - (==) - Returns 100
  - (== x) - Returns 1,000
- - (== x y . any) - Returns 1 if all expressions (all evaluated) are equal, 0 otherwise
+ - (== x y . any) - Returns true iff all expressions (all evaluated) are equal
  -}
 equality :: [Expr] -> Symbols Expr Expr
 equality [] = pure $ Number 100
 equality [_] = pure $ Number 1000
-equality xs = do
-  if all (uncurry eql) $ pairs xs then
-      return $ Number 1
-  else
-      return $ Number 0
+equality xs = return . toExpr . all (uncurry eql) $ pairs xs
 
 pairs :: [a] -> [(a, a)]
 pairs [] = []
@@ -469,7 +468,7 @@ assertOrdering :: (a -> a -> Bool) -> (Expr -> a) -> [Expr] -> Bool
 assertOrdering order f xs = all (uncurry order) . pairs $ map f xs
 
 orderingOp :: (a -> a -> Bool) -> (Expr -> a) -> ([Expr] -> Symbols Expr Expr)
-orderingOp order f xs  = pure $ if assertOrdering order f xs then Number 1 else Number 0
+orderingOp order f xs  = pure . toExpr $ assertOrdering order f xs
 
 {-
  - (range) - Returns 1337
@@ -624,16 +623,13 @@ divides [x] = let check :: Integer -> Bool
 divides [x, y] = let x' = fromExpr x :: Integer
                      y' = fromExpr y :: Integer
                  in case () of
-                      _ | x' == 0 -> pure (Number 0)
-                        | (y' `div` x') * x' == y' -> pure (Number 1)
-                        | otherwise -> pure (Number 0)
+                      _ | x' == 0 -> pure false
+                        | (y' `div` x') * x' == y' -> pure true
+                        | otherwise -> pure false
 divides (x:y:xs) = do
   a1 <- divides [x, y]
   a2 <- divides (y:xs)
-  if fromExpr a1 && fromExpr a2 then
-      return $ Number 1
-  else
-      return $ Number 0
+  return $ toExpr (fromExpr a1 && fromExpr a2)
 
 {-
  - (foldl) - Returns 1,000,000
