@@ -947,7 +947,7 @@ stringRepl xs = stringRepl $ take 3 xs
 
 {-
  - All of the casing operators work the same.
- - (casing) - Returns 0 (TODO Change this)
+ - (casing) - Converts % to the appropriate case
  - (casing x) - Converts the argument to the specified case, using standard casing rules
  - (casing x y . xs) - Converts each argument to the specified case, returning a list
  -
@@ -958,7 +958,7 @@ stringRepl xs = stringRepl $ take 3 xs
  - * lcx - Lowercase using ShinyLisp rules
  -}
 caseOp :: (Char -> Char) -> [Expr] -> Symbols Expr Expr
-caseOp _  [] = pure $ Number 0
+caseOp op [] = expressed (map op) <$> getSymbolOrDefault (Var "%") Nil
 caseOp op [x] = pure $ expressed (map op) x
 caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
 
