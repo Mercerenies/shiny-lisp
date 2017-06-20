@@ -777,6 +777,7 @@ plusTwo xs = plus $ xs ++ [Number 2]
 {-
  - (split) - Returns the digits 0-9 in a string
  - (split x) - Splits the string x into a list, delimited at spaces
+ - (split x "") - Splits the string into individual characters
  - (split x d) - Splits the string x into a list, delimited by d
  - (split x y ... z d) - Splits each string into lists, flattening
  - (sp) == (split)
@@ -784,6 +785,9 @@ plusTwo xs = plus $ xs ++ [Number 2]
 splitExpr :: [Expr] -> Symbols Expr Expr
 splitExpr [] = pure $ String "0123456789"
 splitExpr [x] = splitExpr [x, String " "]
+splitExpr [x, d] | null (fromExpr d :: String) = let f :: String -> [Expr]
+                                                     f = map (\y -> toExpr [y])
+                                                 in pure $ expressed f x
 splitExpr [x, d] = pure . toExpr . map String $ unintercalate (fromExpr d) (fromExpr x)
 splitExpr xs = let xs' = init xs
                    d = last xs
