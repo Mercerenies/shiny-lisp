@@ -47,6 +47,6 @@ evalFileThenPrint x = do
   sym <- evalFile x
   case sym of
     [m] -> case lookup (Var "%") m of
-             Just y -> putStrLn $ printable y
+             Just y -> putStrLn $ userPrint y
              Nothing -> pure ()
     _ -> pure ()

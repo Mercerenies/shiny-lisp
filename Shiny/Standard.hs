@@ -11,6 +11,7 @@ import Data.Function
 import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
+import System.IO
 import Shiny.Structure
 import Shiny.Parser
 import Shiny.Symbol
@@ -996,19 +997,28 @@ gets (n:_) = gets [n]
 interaction :: [Expr] -> Symbols Expr Expr
 interaction xs = do
   bound <- hasSymbol (Var "%")
-  input <- lines <$> liftIO getContents
-  result <- forM input $ \y -> do
-                   setOrDefSymbol (Var "%") $ toExpr y
-                   val <- evalSeq xs
-                   percent <- getSymbolMaybe (Var "%")
-                   case percent of
-                     Nothing -> pure ()
-                     Just x -> liftIO $ putStrLn (userPrint x)
-                   return val
-  when bound $ undefSymbol (Var "%")
+  result <- loop
+  unless bound $ undefSymbol (Var "%")
   return $ case result of
-             [] -> Nil
-             zs -> last zs
+             Nothing -> Nil
+             Just z -> z
+    where loop = do
+            done <- liftIO isEOF
+            if done then
+                return Nothing
+            else do
+              y <- liftIO getLine
+              setOrDefSymbol (Var "%") $ toExpr y
+              val <- evalSeq xs
+              percent <- getSymbolMaybe (Var "%")
+              case percent of
+                Nothing -> pure ()
+                Just x -> liftIO $ putStrLn (userPrint x)
+              done1 <- liftIO isEOF
+              if done1 then
+                  return $ Just val
+              else
+                  loop
 
 {-
  - (print) - Prints %
