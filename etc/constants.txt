@@ -23,6 +23,7 @@
 (mod) 500
 (even) 64
 (odd) 32
+(strings) ""
 (prime) 128
 (up) 9,999
 (split) "0123456789"

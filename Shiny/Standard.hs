@@ -677,7 +677,7 @@ joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
  - (mod x) - Return x `mod` 10
  - (mod x y . xs) - Return x `mod` y
  - (md) == (mod)
- - Modulo by zero yields the divisor
+ - Modulo by zero yields the dividend
  - Note that the sign of the modulo always matches the sign of the divisor
  -}
 modExpr :: [Expr] -> Symbols Expr Expr
@@ -710,6 +710,7 @@ oddExpr [x] = pure . expressed (odd :: Integer -> Bool) $ x
 oddExpr xs = pure . toExpr . map (expressed $ (odd :: Integer -> Bool)) $ xs
 
 {-
+ - (strings) - Returns the empty string
  - (strings . xs) - Concatenate strings
  - (s) == (strings)
  -}
