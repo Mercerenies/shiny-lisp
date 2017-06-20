@@ -719,7 +719,7 @@ stringConcat = pure . String . fold . map fromExpr
 
 {-
  - (prime) - Returns 128
- - (prime x) - Returns true if prime
+ - (prime x) - Returns true if abs(x) is prime
  - (prime . xs) - Returns a list of booleans
  - (pm) == (prime)
  -}

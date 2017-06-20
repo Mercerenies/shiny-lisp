@@ -16,6 +16,7 @@ sortByM cmp (x:xs) = do
   return $ less' ++ [x] ++ greater'
 
 isPrime :: Integral a => a -> Bool
+isPrime p | p < 0 = isPrime $ abs p
 isPrime p | p < 2 = False
 isPrime p = all (\x -> p `mod` x /= 0) [2..p-1]
 
