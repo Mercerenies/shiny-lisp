@@ -45,8 +45,8 @@ printable Nil = "()"
 printable (Cons x y) = "(" ++ printCons x y ++ ")"
 printable (Atom s) = s
 printable (String s) = "\"" ++ concatMap escaped s ++ "\""
-    where escaped '"' = "\""
-          escaped '\\' = "\\"
+    where escaped '"' = "\\\""
+          escaped '\\' = "\\\\"
           escaped x = return x
 printable (Number x) = let sign = if x < 0 then "\\" else ""
                        in sign ++ show (abs x)

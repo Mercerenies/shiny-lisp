@@ -1049,7 +1049,7 @@ interaction xs = do
 putsPrint :: [Expr] -> Symbols Expr Expr
 putsPrint [] = do
   value <- implicitValue
-  userPrint value >>= liftIO . putStrLn
+  liftIO . putStrLn $ printable value
   return Nil
 putsPrint xs = do
   forM_ xs $ \x -> liftIO . putStrLn $ printable x
