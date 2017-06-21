@@ -174,7 +174,9 @@ stdValues = fromList [
              (Var "o", Number 1),
              (Var "w", Number 2),
              (Var "t", Number 10),
-             (Var "n", Nil)
+             (Var "n", Nil),
+             (Var "#,", String " "),
+             (Var "#,,", String " . ")
             ]
 
 standardState :: [SymbolTable Expr]
@@ -232,10 +234,10 @@ list = pure . toExpr
 puts :: [Expr] -> Symbols Expr Expr
 puts [] = do
   value <- getSymbolOrDefault (Var "%") Nil
-  liftIO . putStrLn . userPrint $ value
+  userPrint value >>= liftIO . putStrLn
   return Nil
 puts xs = do
-  forM_ xs $ \x -> liftIO . putStrLn $ userPrint x
+  forM_ xs $ userPrint >=> liftIO . putStrLn
   return Nil
 
 {-
@@ -1029,7 +1031,7 @@ interaction xs = do
               percent <- getSymbolMaybe (Var "%")
               case percent of
                 Nothing -> pure ()
-                Just x -> liftIO $ putStrLn (userPrint x)
+                Just x -> userPrint x >>= liftIO . putStrLn
               done1 <- liftIO isEOF
               if done1 then
                   return $ Just val
@@ -1045,7 +1047,7 @@ interaction xs = do
 putsPrint :: [Expr] -> Symbols Expr Expr
 putsPrint [] = do
   value <- getSymbolOrDefault (Var "%") Nil
-  liftIO . putStrLn . userPrint $ value
+  userPrint value >>= liftIO . putStrLn
   return Nil
 putsPrint xs = do
   forM_ xs $ \x -> liftIO . putStrLn $ printable x

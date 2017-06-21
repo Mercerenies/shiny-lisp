@@ -51,6 +51,10 @@ evalFileThenPrint x = do
   sym <- evalFile x
   case sym of
     [m] -> case lookup (Var "%") m of
-             Just y -> putStrLn $ userPrint y
+             Just y -> do
+                        y' <- runSymbols sym (userPrint y)
+                        case y' of
+                          Left _ -> error "bad output from userPrint"
+                          Right z -> putStrLn z
              Nothing -> pure ()
     _ -> pure ()

@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Shiny.Eval where
+module Shiny.Eval(evalSeq, functionCall, evalList, evaluate) where
 
 import Control.Monad
 import Shiny.Structure

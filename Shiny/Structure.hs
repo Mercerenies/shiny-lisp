@@ -53,11 +53,23 @@ printable (Number x) = let sign = if x < 0 then "\\" else ""
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
 
--- TODO Make userPrint depend on some user-customizable things like a list delimiter, to make
---      things really pretty and convenient.
-userPrint :: Expr -> String
-userPrint (String s) = s
-userPrint x = printable x
+userPrint :: Expr -> Symbols Expr String
+userPrint Nil = pure ""
+userPrint (Cons x Nil) = userPrint x
+userPrint (Cons x (y @ Cons {})) = do
+  delim <- fromExpr <$> getSymbolOrDefault (Var "#,") (String " ")
+  x' <- userPrint x
+  y' <- userPrint y
+  return $ x' ++ delim ++ y'
+userPrint (Cons x y) = do
+  delim <- fromExpr <$> getSymbolOrDefault (Var "#,,") (String " . ")
+  x' <- userPrint x
+  y' <- userPrint y
+  return $ x' ++ delim ++ y'
+userPrint (String s) = pure s
+userPrint (Atom s) = pure s
+userPrint (Number n) = pure $ show n
+userPrint x = pure $ printable x
 
 true :: Expr
 true = Number 1
