@@ -4,7 +4,7 @@ module Shiny.Symbol(SymbolTable, Symbols(..), throwS, catchS, runSymbols, runSym
                     hasSymbol, getSymbol, setSymbol, defSymbol, undefSymbol,
                     getSymbolOrDefault, getSymbolMaybe, getSymbolDefining,
                     globalDefSymbol, setOrDefSymbol,
-                    pushStack, popStack) where
+                    pushStack, popStack, callStackDepth, forceReset) where
 
 import Shiny.Vars
 import Control.Monad
@@ -116,3 +116,11 @@ popStack :: Symbols e (SymbolTable e)
 popStack = get >>= \ys -> case ys of
                             [] -> throwS "call stack is empty"
                             (x:xs) -> x <$ put xs
+
+-- TODO Integral?
+callStackDepth :: Symbols e Int
+callStackDepth = Symbols $ gets length
+
+-- Be VERY careful with this; it can break call stacks very easily
+forceReset :: [SymbolTable e] -> Symbols e ()
+forceReset = Symbols . lift . put

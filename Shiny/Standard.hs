@@ -27,10 +27,10 @@ import qualified Shiny.Case as ShinyCase
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
  -}
 
--- ///// TODO Commands to reboot the REPL (for convenience) and to undefine variables (also, wiki)
 -- ///// What about a stringbuilder interface? Or a generalized way of having interfaces?
 --       Sort of a global register system for each interface to communicate without using explicit
 --       variable names.
+-- ///// Regexp
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
@@ -167,7 +167,8 @@ stdFuncs = fromList [
             (Var "undefine", func' undefineVar),
             (Var "-,", func' undefineVar),
             (Var "argv", func getArgv),
-            (Var "av", func getArgv)
+            (Var "av", func getArgv),
+            (Var "reset", func resetState)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1099,3 +1100,15 @@ getArgv ns = do
   return $ case result' of
              [x] -> x
              xs  -> toExpr xs
+
+{-
+ - (reset . args) - Resets the environment to its starting state before continuing execution
+ -}
+resetState :: [Expr] -> Symbols Expr Expr
+resetState _ = do
+  depth <- callStackDepth
+  if depth <= 2 then -- Global state + resetState state
+      forceReset standardState
+  else
+      throwS "cannot reset state within a function"
+  return Nil
