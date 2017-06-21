@@ -12,6 +12,7 @@ import Shiny.Vars
 import Shiny.Parser
 import Shiny.Structure
 import Shiny.Symbol
+import Shiny.Special
 import System.Environment
 
 evalExpr :: Expr -> IO (Either String Expr, [SymbolTable Expr])
@@ -50,7 +51,7 @@ evalFileThenPrint :: FilePath -> IO ()
 evalFileThenPrint x = do
   sym <- evalFile x
   case sym of
-    [m] -> case lookup (Var "%") m of
+    [m] -> case lookup implicitName m of
              Just y -> do
                         y' <- runSymbols sym (userPrint y)
                         case y' of

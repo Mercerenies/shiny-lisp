@@ -18,6 +18,7 @@ import Shiny.Parser
 import Shiny.Symbol
 import Shiny.Eval
 import Shiny.Vars
+import Shiny.Special
 import Shiny.Util
 import Shiny.Greek
 import qualified Shiny.Case as ShinyCase
@@ -175,8 +176,8 @@ stdValues = fromList [
              (Var "w", Number 2),
              (Var "t", Number 10),
              (Var "n", Nil),
-             (Var "#,", String " "),
-             (Var "#,,", String " . ")
+             (delimiterName, String " "),
+             (dotDelimiterName, String " . ")
             ]
 
 standardState :: [SymbolTable Expr]
@@ -233,7 +234,7 @@ list = pure . toExpr
  -}
 puts :: [Expr] -> Symbols Expr Expr
 puts [] = do
-  value <- getSymbolOrDefault (Var "%") Nil
+  value <- implicitValue
   userPrint value >>= liftIO . putStrLn
   return Nil
 puts xs = do
@@ -304,7 +305,7 @@ ifStmt (x:y:xs) = do
  -}
 equality :: [Expr] -> Symbols Expr Expr
 equality [] = pure $ Number 100
-equality [x] = getSymbolOrDefault (Var "%") Nil >>= \y -> equality [x, y]
+equality [x] = implicitValue >>= \y -> equality [x, y]
 equality xs = return . toExpr . all (uncurry eql) $ pairs xs
 
 pairs :: [a] -> [(a, a)]
@@ -756,7 +757,7 @@ powerExpr xs = let xs' = map fromExpr xs
  - (mo . xs) - Equivalent to (m ,@xs 1)
  -}
 minusOne :: [Expr] -> Symbols Expr Expr
-minusOne [] = getSymbolOrDefault (Var "%") Nil >>= \x -> minusOne [x]
+minusOne [] = implicitValue >>= \x -> minusOne [x]
 minusOne xs = minus $ xs ++ [Number 1]
 
 {-
@@ -764,7 +765,7 @@ minusOne xs = minus $ xs ++ [Number 1]
  - (po . xs) - Equivalent to (p ,@xs 1)
  -}
 plusOne :: [Expr] -> Symbols Expr Expr
-plusOne [] = getSymbolOrDefault (Var "%") Nil >>= \x -> plusOne [x]
+plusOne [] = implicitValue >>= \x -> plusOne [x]
 plusOne xs = plus $ xs ++ [Number 1]
 
 {-
@@ -772,7 +773,7 @@ plusOne xs = plus $ xs ++ [Number 1]
  - (mt . xs) - Equivalent to (m ,@xs 2)
  -}
 minusTwo :: [Expr] -> Symbols Expr Expr
-minusTwo [] = getSymbolOrDefault (Var "%") Nil >>= \x -> minusTwo [x]
+minusTwo [] = implicitValue >>= \x -> minusTwo [x]
 minusTwo xs = minus $ xs ++ [Number 2]
 
 {-
@@ -780,7 +781,7 @@ minusTwo xs = minus $ xs ++ [Number 2]
  - (pt . xs) - Equivalent to (p ,@xs 2)
  -}
 plusTwo :: [Expr] -> Symbols Expr Expr
-plusTwo [] = getSymbolOrDefault (Var "%") Nil >>= \x -> plusTwo [x]
+plusTwo [] = implicitValue >>= \x -> plusTwo [x]
 plusTwo xs = plus $ xs ++ [Number 2]
 
 {-
@@ -977,7 +978,7 @@ stringRepl xs = stringRepl $ take 3 xs
  - * lcx - Lowercase using ShinyLisp rules
  -}
 caseOp :: (Char -> Char) -> [Expr] -> Symbols Expr Expr
-caseOp op [] = expressed (map op) <$> getSymbolOrDefault (Var "%") Nil
+caseOp op [] = expressed (map op) <$> implicitValue
 caseOp op [x] = pure $ expressed (map op) x
 caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
 
@@ -1014,9 +1015,9 @@ gets (n:_) = gets [n]
  -}
 interaction :: [Expr] -> Symbols Expr Expr
 interaction xs = do
-  bound <- hasSymbol (Var "%")
+  bound <- hasSymbol implicitName
   result <- loop
-  unless bound $ undefSymbol (Var "%")
+  unless bound $ undefSymbol implicitName
   return $ case result of
              Nothing -> Nil
              Just z -> z
@@ -1026,9 +1027,9 @@ interaction xs = do
                 return Nothing
             else do
               y <- liftIO getLine
-              setOrDefSymbol (Var "%") $ toExpr y
+              setOrDefSymbol implicitName $ toExpr y
               val <- evalSeq xs
-              percent <- getSymbolMaybe (Var "%")
+              percent <- getSymbolMaybe implicitName
               case percent of
                 Nothing -> pure ()
                 Just x -> userPrint x >>= liftIO . putStrLn
@@ -1046,7 +1047,7 @@ interaction xs = do
  -}
 putsPrint :: [Expr] -> Symbols Expr Expr
 putsPrint [] = do
-  value <- getSymbolOrDefault (Var "%") Nil
+  value <- implicitValue
   userPrint value >>= liftIO . putStrLn
   return Nil
 putsPrint xs = do

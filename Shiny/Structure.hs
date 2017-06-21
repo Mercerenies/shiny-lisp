@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
 module Shiny.Structure(Func(..), Expr(..),
-                       toVar, toVars, printable, userPrint,
+                       toVar, toVars, printable,
                        true, false,
                        func, func', exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
@@ -52,24 +52,6 @@ printable (Number x) = let sign = if x < 0 then "\\" else ""
                        in sign ++ show (abs x)
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
-
-userPrint :: Expr -> Symbols Expr String
-userPrint Nil = pure ""
-userPrint (Cons x Nil) = userPrint x
-userPrint (Cons x (y @ Cons {})) = do
-  delim <- fromExpr <$> getSymbolOrDefault (Var "#,") (String " ")
-  x' <- userPrint x
-  y' <- userPrint y
-  return $ x' ++ delim ++ y'
-userPrint (Cons x y) = do
-  delim <- fromExpr <$> getSymbolOrDefault (Var "#,,") (String " . ")
-  x' <- userPrint x
-  y' <- userPrint y
-  return $ x' ++ delim ++ y'
-userPrint (String s) = pure s
-userPrint (Atom s) = pure s
-userPrint (Number n) = pure $ show n
-userPrint x = pure $ printable x
 
 true :: Expr
 true = Number 1

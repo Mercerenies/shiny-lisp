@@ -1,5 +1,8 @@
 
-module Shiny.Vars(Var(..), argumentNames, argListName, argumentBindings, isImplicitlyGlobal) where
+module Shiny.Vars(Var(..),
+                  argumentNames, argListName, argumentBindings,
+                  implicitName, delimiterName, dotDelimiterName,
+                  isImplicitlyGlobal) where
 
 -- TODO Unicode capitalization support
 
@@ -20,6 +23,15 @@ argListName = Var "!!"
 
 argumentBindings :: [e] -> [(Var, e)]
 argumentBindings = zip argumentNames
+
+implicitName :: Var
+implicitName = Var "%"
+
+delimiterName :: Var
+delimiterName = Var "#,"
+
+dotDelimiterName :: Var
+dotDelimiterName = Var "#,,"
 
 isImplicitlyGlobal :: Var -> Bool
 isImplicitlyGlobal (Var ('#':_)) = True
