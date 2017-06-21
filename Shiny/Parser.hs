@@ -44,7 +44,7 @@ stringLit = char '\"' *> (String <$> rest) <* char '\"'
           rest = contents <|> pure []
 
 rawStringLit :: Parser Expr
-rawStringLit = string "[[" *> (String <$> rest) <* string "]]"
+rawStringLit = string "[[" *> (Regex <$> rest) <* string "]]"
     where contents = (:) <$> single <*> rest
           single = notFollowedBy (string "]]") *> anyChar
           rest = contents <|> pure []

@@ -22,6 +22,7 @@ import Shiny.Special
 import Shiny.Util
 import Shiny.Greek
 import qualified Shiny.Case as ShinyCase
+import Text.Regex.TDFA hiding (matchCount)
 
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
@@ -168,7 +169,11 @@ stdFuncs = fromList [
             (Var "-,", func' undefineVar),
             (Var "argv", func getArgv),
             (Var "av", func getArgv),
-            (Var "reset", func resetState)
+            (Var "reset", func resetState),
+            (Var "match-count", func matchCount),
+            (Var "mc", func matchCount),
+            (Var "match", func matchRegexp),
+            (Var "mr", func matchRegexp)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1112,3 +1117,55 @@ resetState _ = do
   else
       throwS "cannot reset state within a function"
   return Nil
+
+{-
+ - (match-count) - Returns 0 (TODO This)
+ - (match-count r) - Returns the number of times the regex matches the string %
+ - (match-count r s ...) - Returns the number of times the regex matches in any of the strings
+ - (match-count) == (mc)
+ -}
+matchCount :: [Expr] -> Symbols Expr Expr
+matchCount [] = pure $ Number 0
+matchCount [r] = implicitValue >>= \value -> matchCount [r, value]
+matchCount [Regex r, value] =
+    let value' = fromExpr value :: String
+        matches = value' =~~ r :: Maybe Int
+    in return . toExpr $ maybe 0 id matches
+matchCount [s, value] =
+    let value' = fromExpr value :: String
+        matches = countOccurrences value' (fromExpr s)
+    in return $ toExpr matches
+matchCount (s:ss) = do
+    accum <- mapM (\s' -> matchCount [s, s']) ss
+    let f :: [Integer] -> Integer
+        f = sum
+    return . toExpr . f $ map fromExpr accum
+
+{-
+ - (match) - Returns 0 (TODO This)
+ - (match r) - Returns whether r matches the string %
+ - (match r s ...) - Returns whether there was a successful match in any of the strings
+ - (match) == (mr)
+ - In any case, if the match is successful, the capture groups from the first match are bound
+ - to rx, ry, rz, rxx ..., the list of capture groups is bound to r!, and the full match is
+ - bound to rr
+ -}
+matchRegexp :: [Expr] -> Symbols Expr Expr
+matchRegexp [] = pure $ Number 0
+matchRegexp [r] = implicitValue >>= \value -> matchRegexp [r, value]
+matchRegexp (pat:ss) = matchOver ss
+    where matchOver [] = pure false
+          matchOver (y:ys) = case doMatch pat y of
+                               Nothing -> matchOver ys
+                               Just (full, parts) -> do
+                                              setOrDefSymbol reFullName $ toExpr full
+                                              reBindArgs $ map toExpr parts
+                                              pure true
+          doMatch (Regex r) s =
+              let f :: MatchResult String -> (String, [String])
+                  f x = (mrMatch x, mrSubList x)
+              in f <$> (fromExpr s :: String) =~~ r
+          doMatch s0 s = do
+            let s0' = fromExpr s0
+            guard $ countOccurrences (fromExpr s) s0' > 0
+            return (s0', [])

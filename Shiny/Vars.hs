@@ -1,6 +1,8 @@
 
 module Shiny.Vars(Var(..),
                   argumentNames, argListName, argumentBindings,
+                  reArgumentNames, reArgListName, reArgumentBindings,
+                  reFullName,
                   implicitName, delimiterName, dotDelimiterName,
                   isImplicitlyGlobal) where
 
@@ -23,6 +25,18 @@ argListName = Var "!!"
 
 argumentBindings :: [e] -> [(Var, e)]
 argumentBindings = zip argumentNames
+
+reArgumentNames :: [Var]
+reArgumentNames = map (\(Var x) -> Var $ 'r' : x) argumentNames
+
+reArgListName :: Var
+reArgListName = Var "r!"
+
+reArgumentBindings :: [e] -> [(Var, e)]
+reArgumentBindings = zip reArgumentNames
+
+reFullName :: Var
+reFullName = Var "rr"
 
 implicitName :: Var
 implicitName = Var "%"

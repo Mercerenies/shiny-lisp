@@ -5,7 +5,7 @@ module Shiny.Structure(Func(..), Expr(..),
                        true, false,
                        func, func', exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
-                       eql, bindArgs) where
+                       eql, bindArgs, reBindArgs) where
 
 import Shiny.Symbol
 import Shiny.Vars
@@ -20,6 +20,7 @@ data Expr
     | Atom String
     | String String
     | Number Integer
+    | Regex String
     | BuiltIn Func
     | Special Func
       deriving (Show, Eq)
@@ -50,6 +51,7 @@ printable (String s) = "\"" ++ concatMap escaped s ++ "\""
           escaped x = return x
 printable (Number x) = let sign = if x < 0 then "\\" else ""
                        in sign ++ show (abs x)
+printable (Regex s) = "[[" ++ s ++ "]]"
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
 
@@ -98,6 +100,7 @@ coerceToNumber (Cons _ y) = 1 + coerceToNumber y
 coerceToNumber (Atom s) = coerceToNumber (String s)
 coerceToNumber (String s) = maybe 0 fst . listToMaybe $ reads s
 coerceToNumber (Number x) = x
+coerceToNumber (Regex s) = coerceToNumber (String s)
 coerceToNumber (BuiltIn _) = 0
 coerceToNumber (Special _) = 0
 
@@ -107,6 +110,7 @@ coerceToString (Cons x y) = coerceToString x ++ coerceToString y
 coerceToString (Atom s) = s
 coerceToString (String s) = s
 coerceToString (Number x) = show x
+coerceToString (Regex s) = s
 coerceToString (BuiltIn _) = "function"
 coerceToString (Special _) = "function"
 
@@ -116,6 +120,7 @@ coerceToBool (Cons {}) = True
 coerceToBool (Atom {}) = True
 coerceToBool (String s) = s /= ""
 coerceToBool (Number x) = x /= 0
+coerceToBool (Regex s) = s /= ""
 coerceToBool (BuiltIn {}) = True
 coerceToBool (Special {}) = True
 
@@ -178,6 +183,8 @@ eql (Cons x y) (Cons x' y') = x `eql` x' && y `eql` y'
 eql (Atom s) (Atom s') = s == s'
 eql (String s) (String s') = s == s'
 eql (Number x) (Number x') = x == x'
+eql (Regex s) s' = eql (String s) s'
+eql s (Regex s') = eql s (Regex s')
 eql _ _ = False
 
 bindArgs :: [Expr] -> Symbols Expr ()
@@ -185,3 +192,9 @@ bindArgs xs = do
   forM_ (argumentBindings xs) $ \(v, e) -> do
                 defSymbol v e
   defSymbol argListName $ exprFromList xs
+
+reBindArgs :: [Expr] -> Symbols Expr ()
+reBindArgs xs = do
+  forM_ (reArgumentBindings xs) $ \(v, e) -> do
+                defSymbol v e
+  defSymbol reArgListName $ exprFromList xs

@@ -1,6 +1,6 @@
 
 module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM,
-                  rotateChar, chr', replaceString, replaceStringM) where
+                  rotateChar, chr', replaceString, replaceStringM, countOccurrences) where
 
 import Data.Char
 import Data.List
@@ -71,3 +71,9 @@ replaceStringM [] _  _   = pure []
 replaceStringM as bs mcs
     | take (length bs) as == bs = (++) <$> mcs <*> replaceStringM (drop (length bs) as) bs mcs
     | otherwise = (head as :) <$> replaceStringM (tail as) bs mcs
+
+countOccurrences :: (Eq a) => [a] -> [a] -> Int
+countOccurrences [] _ = 0
+countOccurrences as bs
+    | take (length bs) as == bs = 1 + countOccurrences (tail as) bs
+    | otherwise                 =     countOccurrences (tail as) bs
