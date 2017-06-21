@@ -5,12 +5,14 @@ module Shiny.Runner(evalExpr, evalExprs, evalExpr', evalExprs',
 
 import Prelude hiding (lookup)
 import Data.Map(lookup)
+import Control.Monad.IO.Class
 import Shiny.Standard
 import Shiny.Eval
 import Shiny.Vars
 import Shiny.Parser
 import Shiny.Structure
 import Shiny.Symbol
+import System.Environment
 
 evalExpr :: Expr -> IO (Either String Expr, [SymbolTable Expr])
 evalExpr e = runSymbols' standardState $ evaluate e
@@ -19,7 +21,9 @@ evalExpr' :: Expr -> IO (Either String Expr)
 evalExpr' = fmap fst . evalExpr
 
 evalExprs :: [Expr] -> IO (Either String Expr, [SymbolTable Expr])
-evalExprs e = runSymbols' standardState $ evalSeq e
+evalExprs e = runSymbols' standardState $ do
+                liftIO getArgs >>= (bindArgs . map toExpr)
+                evalSeq e
 
 evalExprs' :: [Expr] -> IO (Either String Expr)
 evalExprs' = fmap fst . evalExprs

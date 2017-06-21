@@ -53,6 +53,8 @@ printable (Number x) = let sign = if x < 0 then "\\" else ""
 printable (BuiltIn _) = "#<BuiltIn>"
 printable (Special _) = "#<Special>"
 
+-- TODO Make userPrint depend on some user-customizable things like a list delimiter, to make
+--      things really pretty and convenient.
 userPrint :: Expr -> String
 userPrint (String s) = s
 userPrint x = printable x

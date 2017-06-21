@@ -15,7 +15,7 @@ showHelp :: IO ()
 showHelp = do
   putStrLn "Usage:"
   putStrLn "  shiny - Open a REPL"
-  putStrLn "  shiny <filenames...> - Execute the files in sequence (with separate environments)"
+  putStrLn "  shiny <filename> <args...> - Execute the file, passing the given command line arguments"
   putStrLn "  shiny --help - Show the help screen"
 
 doREPL :: IO ()
@@ -31,8 +31,8 @@ doREPL = do
               res <- evalSeq e
               liftIO $ putStrLn (printable res)
 
-doFiles :: [FilePath] -> IO ()
-doFiles = mapM_ evalFileThenPrint
+doFile :: FilePath -> [String] -> IO ()
+doFile file args = withArgs args (evalFileThenPrint file)
 
 main :: IO ()
 main = do
@@ -40,4 +40,4 @@ main = do
   case args of
     ["--help"] -> showHelp
     [] -> doREPL
-    xs -> doFiles xs
+    (x:xs) -> doFile x xs

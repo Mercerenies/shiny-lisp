@@ -12,6 +12,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
 import System.IO
+import System.Environment
 import Shiny.Structure
 import Shiny.Parser
 import Shiny.Symbol
@@ -163,7 +164,9 @@ stdFuncs = fromList [
             (Var "define", func' defineVar),
             (Var ",-", func' defineVar),
             (Var "undefine", func' undefineVar),
-            (Var "-,", func' undefineVar)
+            (Var "-,", func' undefineVar),
+            (Var "argv", func getArgv),
+            (Var "av", func getArgv)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1076,3 +1079,20 @@ undefineVar xs = do
                    exists <- hasSymbol x
                    when exists $ undefSymbol x
   return Nil
+
+{-
+ - (argv) - Returns the command line arguments, as a list
+ - (argv n) - Returns the nth command line argument (wrapping if necessary)
+ - (argv n ... m) - Returns a list containing each argument
+ - (argv) == (av)
+ -}
+getArgv :: [Expr] -> Symbols Expr Expr
+getArgv [] = toExpr . map toExpr <$> liftIO getArgs
+getArgv ns = do
+  args <- liftIO getArgs
+  let ns' = map fromExpr ns :: [Integer]
+      result = map (wrappedNth args) ns'
+      result' = map (maybe Nil toExpr) result
+  return $ case result' of
+             [x] -> x
+             xs  -> toExpr xs
