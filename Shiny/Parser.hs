@@ -43,6 +43,12 @@ stringLit = char '\"' *> (String <$> rest) <* char '\"'
           single = noneOf "\\\"" <|> char '\\' *> anyChar
           rest = contents <|> pure []
 
+rawStringLit :: Parser Expr
+rawStringLit = string "[[" *> (String <$> rest) <* string "]]"
+    where contents = (:) <$> single <*> rest
+          single = notFollowedBy (string "]]") *> anyChar
+          rest = contents <|> pure []
+
 numberLit :: Parser Expr
 numberLit = do
   sign <- option 1 (-1 <$ char '\\')
@@ -56,8 +62,9 @@ numberLit = do
 list :: Parser Expr
 list = regularList <|> quotedList <|> seqList
     where regularList = char '(' *> spaces *> restOfList <* char ')'
-          quotedList = doQuote <$> (char '[' *> spaces *> restOfList <* char ']')
           seqList = doProgn <$> (char '{' *> spaces *> restOfList <* char '}')
+          quotedList = doQuote <$>
+                       (notFollowedBy (string "[[") *> char '['  *> spaces *> restOfList <* char ']')
 
 restOfList :: Parser Expr
 restOfList = regular <|> terminating <|> pure Nil
@@ -74,10 +81,10 @@ upperChain :: Parser [Expr]
 upperChain = ((:) <$> mandatoryUpper <*> many upperExpr) <* optional (char '~')
 
 lowerExpr :: Parser Expr
-lowerExpr = numberLit <|> stringLit <|> list <|> quoted <|> atom
+lowerExpr = numberLit <|> rawStringLit <|> stringLit <|> list <|> quoted <|> atom
 
 upperExpr :: Parser Expr
-upperExpr = numberLit <|> stringLit <|> list <|> quoted <|> mandatoryUpper
+upperExpr = numberLit <|> rawStringLit <|> stringLit <|> list <|> quoted <|> mandatoryUpper
 
 mandatoryUpper :: Parser Expr
 mandatoryUpper = capsAtom <|> coloned
