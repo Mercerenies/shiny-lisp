@@ -1,0 +1,6 @@
+
+"This script behaves similarly to the command line `grep` utility. Note that this program will
+ always read from STDIN and uses POSIX extended regular expression syntax."
+_:I:MrX~N:_,
+
+"Ungolfed: (- (cond (match x) () (undefine)))"
