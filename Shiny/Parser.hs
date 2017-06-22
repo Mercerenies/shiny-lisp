@@ -46,7 +46,8 @@ stringLit = char '\"' *> (String <$> rest) <* char '\"'
 rawStringLit :: Parser Expr
 rawStringLit = string "[[" *> (Regex <$> rest) <* string "]]"
     where contents = (:) <$> single <*> rest
-          single = notFollowedBy (string "]]") *> anyChar
+          -- I apologize for the nested notFollowedBy calls; enjoy :)
+          single = notFollowedBy (string "]]" *> notFollowedBy (char ']')) *> anyChar
           rest = contents <|> pure []
 
 numberLit :: Parser Expr

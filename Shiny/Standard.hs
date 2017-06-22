@@ -31,7 +31,7 @@ import Text.Regex.TDFA hiding (matchCount)
 -- ///// What about a stringbuilder interface? Or a generalized way of having interfaces?
 --       Sort of a global register system for each interface to communicate without using explicit
 --       variable names.
--- ///// Regexp
+-- ///// Regexp (we have matching but not substitution)
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
@@ -173,7 +173,9 @@ stdFuncs = fromList [
             (Var "match-count", func matchCount),
             (Var "mc", func matchCount),
             (Var "match", func matchRegexp),
-            (Var "mr", func matchRegexp)
+            (Var "mr", func matchRegexp),
+            (Var "replace", func replaceRegexp),
+            (Var "=r", func replaceRegexp)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1169,3 +1171,33 @@ matchRegexp (pat:ss) = matchOver ss
             let s0' = fromExpr s0
             guard $ countOccurrences (fromExpr s) s0' > 0
             return (s0', [])
+
+{-
+ - (replace) - Returns 0 (TODO This)
+ - (replace r) - Removes all instances of r from %, returning a new string
+ - (replace r s) - Replaces all instances of r with s in %, returning a new string
+ - (replace t r s) - Replaces all instances of r with s in t, returning a new string
+ - (replace t r s . x) - Ignores latter arguments
+ - (replace) == (=r)
+ - In the replacement cases, the value s will be called (as a function) with the capture groups
+ - bound to the regex variables rx, ry, rz, ... as well as r! and rr. The return value will also
+ - happily interpolate the values \1, \2, ... and \&.
+ -}
+replaceRegexp :: [Expr] -> Symbols Expr Expr
+replaceRegexp [] = pure $ Number 0
+replaceRegexp [r] = replaceRegexp [r, String ""]
+replaceRegexp [r, s] = implicitValue >>= \value -> replaceRegexp [value, r, s]
+replaceRegexp (t:r:s:_) = expressedM doReplacement t
+    where pat = fromExpr r :: String
+          doReplacement :: String -> Symbols Expr String
+          doReplacement str =
+            case str =~~ pat :: Maybe (MatchResult String) of
+              Nothing -> pure str
+              Just m -> do
+                let before0 = mrBefore m
+                setOrDefSymbol reFullName . toExpr $ mrMatch m
+                reBindArgs . map toExpr $ mrSubList m
+                mid <- functionCall s []
+                let mid' = reInterpolate (mrMatch m) (mrSubList m) (fromExpr mid)
+                after0 <- doReplacement (mrAfter m)
+                return $ before0 ++ mid' ++ after0

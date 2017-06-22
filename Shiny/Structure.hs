@@ -5,12 +5,13 @@ module Shiny.Structure(Func(..), Expr(..),
                        true, false,
                        func, func', exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
-                       eql, bindArgs, reBindArgs) where
+                       eql, bindArgs, reBindArgs, reInterpolate) where
 
 import Shiny.Symbol
 import Shiny.Vars
 import Control.Monad
 import Data.Maybe
+import Data.Char(isDigit, ord)
 
 newtype Func = Func { runFunc :: [Expr] -> Symbols Expr Expr }
 
@@ -198,3 +199,15 @@ reBindArgs xs = do
   forM_ (reArgumentBindings xs) $ \(v, e) -> do
                 defSymbol v e
   defSymbol reArgListName $ exprFromList xs
+
+reInterpolate :: String -> [String] -> String -> String
+reInterpolate match sub str0 = helper str0
+    where helper [] = []
+          helper ('\\':m:str) =
+              case m of
+                '&' -> match ++ helper str
+                n | isDigit n -> let n' = (ord n - ord '1') `mod` length sub
+                                     sub' = sub !! n'
+                                 in sub' ++ helper str
+                  | otherwise -> '\\' : n : helper str
+          helper (s:str) = s : helper str
