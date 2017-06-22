@@ -1129,14 +1129,10 @@ resetState _ = do
 matchCount :: [Expr] -> Symbols Expr Expr
 matchCount [] = pure $ Number 0
 matchCount [r] = implicitValue >>= \value -> matchCount [r, value]
-matchCount [Regex r, value] =
+matchCount [r, value] =
     let value' = fromExpr value :: String
-        matches = value' =~~ r :: Maybe Int
+        matches = value' =~~ (fromExpr r :: String) :: Maybe Int
     in return . toExpr $ maybe 0 id matches
-matchCount [s, value] =
-    let value' = fromExpr value :: String
-        matches = countOccurrences value' (fromExpr s)
-    in return $ toExpr matches
 matchCount (s:ss) = do
     accum <- mapM (\s' -> matchCount [s, s']) ss
     let f :: [Integer] -> Integer
@@ -1163,14 +1159,10 @@ matchRegexp (pat:ss) = matchOver ss
                                               setOrDefSymbol reFullName $ toExpr full
                                               reBindArgs $ map toExpr parts
                                               pure true
-          doMatch (Regex r) s =
+          doMatch r s =
               let f :: MatchResult String -> (String, [String])
                   f x = (mrMatch x, mrSubList x)
-              in f <$> (fromExpr s :: String) =~~ r
-          doMatch s0 s = do
-            let s0' = fromExpr s0
-            guard $ countOccurrences (fromExpr s) s0' > 0
-            return (s0', [])
+              in f <$> (fromExpr s :: String) =~~ (fromExpr r :: String)
 
 {-
  - (replace) - Returns 0 (TODO This)
@@ -1183,7 +1175,7 @@ matchRegexp (pat:ss) = matchOver ss
  - bound to the regex variables rx, ry, rz, ... as well as r! and rr. The return value will also
  - happily interpolate the values \1, \2, ... and \&.
  -}
-replaceRegexp :: [Expr] -> Symbols Expr Expr
+replaceRegexp :: [Expr] -> Symbols Expr Expr -- TODO We need to handle the empty regexp case
 replaceRegexp [] = pure $ Number 0
 replaceRegexp [r] = replaceRegexp [r, String ""]
 replaceRegexp [r, s] = implicitValue >>= \value -> replaceRegexp [value, r, s]
