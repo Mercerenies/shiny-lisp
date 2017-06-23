@@ -44,7 +44,7 @@ stringLit = char '\"' *> (String <$> rest) <* char '\"'
           rest = contents <|> pure []
 
 rawStringLit :: Parser Expr
-rawStringLit = string "[[" *> (Regex <$> rest) <* string "]]"
+rawStringLit = try (string "[[") *> (Regex <$> rest) <* try (string "]]")
     where contents = (:) <$> single <*> rest
           -- I apologize for the nested notFollowedBy calls; enjoy :)
           single = notFollowedBy (string "]]" *> notFollowedBy (char ']')) *> anyChar
