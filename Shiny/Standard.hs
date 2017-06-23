@@ -31,7 +31,6 @@ import Text.Regex.TDFA hiding (matchCount)
 -- ///// What about a stringbuilder interface? Or a generalized way of having interfaces?
 --       Sort of a global register system for each interface to communicate without using explicit
 --       variable names.
--- ///// Regexp (we have matching but not substitution)
 
 standard :: SymbolTable Expr
 standard = stdFuncs `union` stdValues
@@ -53,21 +52,21 @@ stdFuncs = fromList [
             (Var "/", func divs),
             (Var "cond", func' ifStmt),
             (Var "i", func' ifStmt),
-            (Var "==", func equality),
+            (Var "==", nFunc 100 equality),
             (Var "sequence", func sequenceExpr),
             (Var "sq", func sequenceExpr),
-            (Var "take", func takeExpr),
-            (Var "tk", func takeExpr),
-            (Var "car", func takeExpr),
-            (Var "drop", func dropExpr),
-            (Var "dp", func dropExpr),
-            (Var "cdr", func dropExpr),
-            (Var "apply", func applyExpr),
-            (Var "ap", func applyExpr),
-            (Var "map", func mapExpr),
-            (Var "a", func mapExpr),
-            (Var "filter", func filterExpr),
-            (Var "e", func filterExpr),
+            (Var "take", nFunc 10000 takeExpr),
+            (Var "tk", nFunc 10000 takeExpr),
+            (Var "car", nFunc 10000 takeExpr),
+            (Var "drop", nFunc 2048 dropExpr),
+            (Var "dp", nFunc 2048 dropExpr),
+            (Var "cdr", nFunc 2048 dropExpr),
+            (Var "apply", nFunc 2147483647 applyExpr),
+            (Var "ap", nFunc 2147483647 applyExpr),
+            (Var "map", sFunc "ABCDEFGHIJKLMNOPQRSTUVWXYZ" mapExpr),
+            (Var "a", sFunc "ABCDEFGHIJKLMNOPQRSTUVWXYZ" mapExpr),
+            (Var "filter", sFunc "abcdefghijklmnopqrstuvwxyz" filterExpr),
+            (Var "e", sFunc "abcdefghijklmnopqrstuvwxyz" filterExpr),
             (Var "less-than", func $ orderingOp (<) (fromExpr :: Expr -> Integer)),
             (Var "c,", func $ orderingOp (<) (fromExpr :: Expr -> Integer)),
             (Var "less-eq", func $ orderingOp (<=) (fromExpr :: Expr -> Integer)),
@@ -84,54 +83,54 @@ stdFuncs = fromList [
             (Var ";c", func $ orderingOp (>) (fromExpr :: Expr -> Integer)),
             (Var "str-greater-eq", func $ orderingOp (>=) (fromExpr :: Expr -> Integer)),
             (Var ";=", func $ orderingOp (>=) (fromExpr :: Expr -> Integer)),
-            (Var "range", func rangeExpr),
-            (Var "rg", func rangeExpr),
+            (Var "range", nFunc 1337 rangeExpr),
+            (Var "rg", nFunc 1337 rangeExpr),
             (Var "quit", func quitProg),
             (Var "cons", func consExpr),
             (Var "c", func consExpr),
-            (Var "bitand", func andExpr),
-            (Var "b&", func andExpr),
-            (Var "bitor", func orExpr),
-            (Var "b;", func orExpr),
-            (Var "bitxor", func xorExpr),
-            (Var "b%", func xorExpr),
-            (Var "boolnorm", func boolNorm),
-            (Var "bn", func boolNorm),
+            (Var "bitand", nFunc (-1) andExpr),
+            (Var "b&", nFunc (-1) andExpr),
+            (Var "bitor", nFunc 0 orExpr),
+            (Var "b;", nFunc 0 orExpr),
+            (Var "bitxor", nFunc 256 xorExpr),
+            (Var "b%", nFunc 256 xorExpr),
+            (Var "boolnorm", nFunc 999 boolNorm),
+            (Var "bn", nFunc 999 boolNorm),
             (Var "hook", func hook),
             (Var "hk", func hook),
             (Var "id", func idFunc),
             (Var "d", func idFunc),
             (Var "compose", func compose),
             (Var ",", func compose),
-            (Var "sort", func sortExpr),
-            (Var "st", func sortExpr),
-            (Var "divides", func divides),
-            (Var "//", func divides),
-            (Var "foldl", func foldlExpr),
-            (Var "fl", func foldlExpr),
-            (Var "foldr", func foldrExpr),
-            (Var "fr", func foldrExpr),
+            (Var "sort", sFunc "12345678910" sortExpr),
+            (Var "st", sFunc "12345678910" sortExpr),
+            (Var "divides", nFunc (-100) divides),
+            (Var "//", nFunc (-100) divides),
+            (Var "foldl", nFunc 1000000 foldlExpr),
+            (Var "fl", nFunc 1000000 foldlExpr),
+            (Var "foldr", nFunc (-1000000) foldrExpr),
+            (Var "fr", nFunc (-1000000) foldrExpr),
             (Var "join", func joinExpr),
             (Var "jn", func joinExpr),
-            (Var "mod", func modExpr),
-            (Var "md", func modExpr),
-            (Var "even", func evenExpr),
-            (Var "ev", func evenExpr),
-            (Var "odd", func oddExpr),
-            (Var "od", func oddExpr),
-            (Var "strings", func stringConcat),
-            (Var "s", func stringConcat),
-            (Var "prime", func primeExpr),
-            (Var "pm", func primeExpr),
-            (Var "up", func powerExpr),
+            (Var "mod", nFunc 500 modExpr),
+            (Var "md", nFunc 500 modExpr),
+            (Var "even", nFunc 64 evenExpr),
+            (Var "ev", nFunc 64 evenExpr),
+            (Var "odd", nFunc 32 oddExpr),
+            (Var "od", nFunc 32 oddExpr),
+            (Var "strings", sFunc "" stringConcat),
+            (Var "s", sFunc "" stringConcat),
+            (Var "prime", nFunc 128 primeExpr),
+            (Var "pm", nFunc 128 primeExpr),
+            (Var "up", nFunc 9999 powerExpr),
             (Var "mo", func minusOne),
             (Var "po", func plusOne),
             (Var "mt", func minusTwo),
             (Var "pt", func plusTwo),
-            (Var "split", func splitExpr),
-            (Var "sp", func splitExpr),
-            (Var "inter", func interExpr),
-            (Var "ps", func interExpr),
+            (Var "split", sFunc "0123456789" splitExpr),
+            (Var "sp", sFunc "0123456789" splitExpr),
+            (Var "inter", sFunc ")!@#$%^&*("interExpr),
+            (Var "ps", sFunc ")!@#$%^&*(" interExpr),
             (Var "insert", func insertExpr),
             (Var "it", func insertExpr),
             (Var "remove", func removeExpr),
@@ -142,8 +141,8 @@ stdFuncs = fromList [
             (Var "rd", func readStmt),
             (Var "eval", func evalStmt),
             (Var "el", func evalStmt),
-            (Var "two-curry", func twoCurry),
-            (Var "tc", func twoCurry),
+            (Var "two-curry", nFunc 1000 twoCurry),
+            (Var "tc", nFunc 1000 twoCurry),
             (Var "seq-while", func seqWhile),
             (Var "sw", func seqWhile),
             (Var "print-greek", func printGreek),
@@ -322,14 +321,14 @@ pairs [_] = []
 pairs (x:y:ys) = (x, y) : pairs (y:ys)
 
 sequential :: [Expr] -> Func
-sequential xs = Func helper
+sequential xs = userFunc helper
     where helper :: [Expr] -> Symbols Expr Expr
           helper [] = helper [Number 0]
           helper (n:_) = let n' = fromExpr n :: Integer
                          in pure $ xs `genericIndex` n'
 
 sequential' :: [Expr] -> Func
-sequential' xs = Func helper
+sequential' xs = userFunc helper
     where helper :: [Expr] -> Symbols Expr Expr
           helper [] = helper [Number 1]
           helper (n:_) = let n' = fromExpr n :: Integer
@@ -572,10 +571,10 @@ boolNorm xs = toExpr <$> mapM (boolNorm . return) xs
 hook :: [Expr] -> Symbols Expr Expr
 hook [] = let t :: [Expr] -> Symbols Expr Expr
               t xs = pure . toExpr $ reverse xs
-          in pure . BuiltIn $ Func t
+          in pure . BuiltIn $ userFunc t
 hook [f] = let t :: [Expr] -> Symbols Expr Expr
                t xs = functionCall f $ reverse xs
-           in pure . BuiltIn $ Func t
+           in pure . BuiltIn $ userFunc t
 hook [f, g] = let t :: [Expr] -> Symbols Expr Expr
                   t xs = mapM (functionCall g . pure) xs >>= functionCall f
               in pure $ func t
@@ -685,9 +684,9 @@ foldrExpr (f:ys) = case init ys ++ fromExpr (last ys) of
  -}
 joinExpr :: [Expr] -> Symbols Expr Expr
 joinExpr [] = let t xs = pure . (toExpr :: [Expr] -> Expr) . concatMap (\x -> [x, x]) $ xs
-              in pure . BuiltIn $ Func t
+              in pure . BuiltIn $ userFunc t
 joinExpr [f] = let t xs = functionCall f $ concatMap (\x -> [x, x]) xs
-               in pure . BuiltIn $ Func t
+               in pure . BuiltIn $ userFunc t
 joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
 
 {-
@@ -910,9 +909,9 @@ evalStmt = evalSeq
  -}
 twoCurry :: [Expr] -> Symbols Expr Expr
 twoCurry [] = pure $ Number 1000
-twoCurry [f] = let t = pure . BuiltIn . Func . s
+twoCurry [f] = let t = pure . BuiltIn . userFunc . s
                    s xs ys = functionCall f (xs ++ ys)
-               in pure . BuiltIn . Func $ t
+               in pure . BuiltIn . userFunc $ t
 twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
 
 {-

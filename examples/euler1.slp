@@ -3,4 +3,4 @@
 (puts (foldl (filter [bitor (divides 3 x) (divides 5 x)] (range 999))))
 
 "Golfed"
-Pu:Fl:E[b; ?/3X ?/5X]:Rg:Bn
+Pu:Fl:E[b; ?/3X ?/5X]:RgBn

@@ -3,7 +3,8 @@
 module Shiny.Structure(Func(..), Expr(..),
                        toVar, toVars, printable,
                        true, false,
-                       func, func', exprToList, exprToList', prepend,
+                       func, func', userFunc, nFunc, sFunc,
+                       exprToList, exprToList', prepend,
                        FromExpr(..), ToExpr(..), expressed, expressedM,
                        eql, bindArgs, reBindArgs, reInterpolate) where
 
@@ -13,7 +14,16 @@ import Control.Monad
 import Data.Maybe
 import Data.Char(isDigit, ord)
 
-newtype Func = Func { runFunc :: [Expr] -> Symbols Expr Expr }
+data FuncValue = FuncNone |
+                 FuncNumber Integer |
+                 FuncString String
+                 deriving (Show, Eq, Ord, Read)
+
+data Func = Func {
+      runFunc :: [Expr] -> Symbols Expr Expr,
+      isBuiltIn :: Bool,
+      functionalValue :: FuncValue
+    }
 
 data Expr
     = Nil
@@ -27,10 +37,10 @@ data Expr
       deriving (Show, Eq)
 
 instance Eq Func where
-    Func _ == Func _ = True
+    Func {} == Func {} = True
 
 instance Show Func where
-    show (Func _) = "Func"
+    show (Func {}) = "Func"
 
 toVar :: Expr -> Maybe Var
 toVar (Atom x) = Just $ Var x
@@ -67,11 +77,36 @@ printCons x (Cons y z) = printable x ++ " " ++ printCons y z
 printCons x Nil        = printable x
 printCons x x1         = printable x ++ " . " ++ printable x1
 
+simpleFunc :: ([Expr] -> Symbols Expr Expr) -> Func
+simpleFunc f = Func f True FuncNone
+
 func :: ([Expr] -> Symbols Expr Expr) -> Expr
-func = BuiltIn . Func
+func = BuiltIn . simpleFunc
 
 func' :: ([Expr] -> Symbols Expr Expr) -> Expr
-func' = Special . Func
+func' = Special . simpleFunc
+
+nFunc :: Integer -> ([Expr] -> Symbols Expr Expr) -> Expr
+nFunc n f = BuiltIn $ Func f True (FuncNumber n)
+
+sFunc :: String -> ([Expr] -> Symbols Expr Expr) -> Expr
+sFunc s f = BuiltIn $ Func f True (FuncString s)
+
+userFunc :: ([Expr] -> Symbols Expr Expr) -> Func
+userFunc f = Func f False FuncNone
+
+funcToNumber :: Func -> Integer
+funcToNumber (Func { functionalValue = v }) =
+    case v of
+      FuncNumber n -> n
+      _ -> 0
+
+funcToString :: Func -> String
+funcToString (Func { functionalValue = v }) =
+    case v of
+      FuncString s -> s
+      FuncNumber n -> show n
+      _ -> ""
 
 exprToList :: Expr -> Maybe [Expr]
 exprToList Nil = Just []
@@ -102,8 +137,8 @@ coerceToNumber (Atom s) = coerceToNumber (String s)
 coerceToNumber (String s) = maybe 0 fst . listToMaybe $ reads s
 coerceToNumber (Number x) = x
 coerceToNumber (Regex s) = coerceToNumber (String s)
-coerceToNumber (BuiltIn _) = 0
-coerceToNumber (Special _) = 0
+coerceToNumber (BuiltIn f) = funcToNumber f
+coerceToNumber (Special f) = funcToNumber f
 
 coerceToString :: Expr -> String
 coerceToString Nil = ""
@@ -112,8 +147,8 @@ coerceToString (Atom s) = s
 coerceToString (String s) = s
 coerceToString (Number x) = show x
 coerceToString (Regex s) = s
-coerceToString (BuiltIn _) = "function"
-coerceToString (Special _) = "function"
+coerceToString (BuiltIn f) = funcToString f
+coerceToString (Special f) = funcToString f
 
 coerceToBool :: Expr -> Bool
 coerceToBool Nil = False
@@ -122,8 +157,8 @@ coerceToBool (Atom {}) = True
 coerceToBool (String s) = s /= ""
 coerceToBool (Number x) = x /= 0
 coerceToBool (Regex s) = s /= ""
-coerceToBool (BuiltIn {}) = True
-coerceToBool (Special {}) = True
+coerceToBool (BuiltIn f) = funcToNumber f /= 0
+coerceToBool (Special f) = funcToNumber f /= 0
 
 coerceToList :: Expr -> [Expr]
 coerceToList Nil = []
