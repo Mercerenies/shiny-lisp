@@ -174,7 +174,11 @@ stdFuncs = fromList [
             (Var "match", func matchRegexp),
             (Var "mr", func matchRegexp),
             (Var "replace", func replaceRegexp),
-            (Var "=r", func replaceRegexp)
+            (Var "=r", func replaceRegexp),
+            (Var "prime-factors", func primeFactors),
+            (Var "pf", func primeFactors),
+            (Var "prime-factorize", func primeFactors'),
+            (Var "pz", func primeFactors')
            ]
 
 stdValues :: SymbolTable Expr
@@ -1192,3 +1196,34 @@ replaceRegexp (t:r:s:_) = expressedM doReplacement t
                 let mid' = reInterpolate (mrMatch m) (mrSubList m) (fromExpr mid)
                 after0 <- doReplacement (mrAfter m)
                 return $ before0 ++ mid' ++ after0
+
+{-
+ - (prime-factors) - Returns 0 (TODO This)
+ - (prime-factors p) - Returns an ordered list of prime factors of p
+ - (prime-factors p . s) - Ignores s
+ - (pf) == (prime-factors)
+ - NOTE: abs if negative; 0 and 1 return ()
+ -}
+primeFactors :: [Expr] -> Symbols Expr Expr
+primeFactors [] = pure $ Number 0
+primeFactors (p:_) = let p' :: Integer
+                         p' = abs $ fromExpr p
+                         factors = filter (\x -> p' `mod` x == 0 && isPrime x) [2 .. p' `div` 2]
+                     in pure . toExpr . map toExpr $ factors
+
+{-
+ - (prime-factorize) - Returns 0 (TODO This)
+ - (prime-factorize p) - Returns an ordered list of prime factors of p, with duplicates
+ - (prime-factorize p . s) - Ignores s
+ - (pz) == (prime-factorize)
+ - NOTE: abs if negative; 0 and 1 return ()
+ -}
+primeFactors' :: [Expr] -> Symbols Expr Expr
+primeFactors' [] = pure $ Number 0
+primeFactors' (p:_) = pure . toExpr . map toExpr $ helper (p' `div` 2) p' []
+    where p' :: Integer
+          p' = abs $ fromExpr p
+          helper r n acc
+              | n <= 1 = acc
+              | n `mod` r == 0 && isPrime r = helper r (n `div` r) (r : acc)
+              | otherwise = helper (r - 1) n acc
