@@ -1,5 +1,7 @@
 
-module Shiny.Special(argListValue, implicitValue, delimiterValue, dotDelimiterValue, userPrint) where
+module Shiny.Special(argListValue, implicitValue,
+                     delimiterValue, dotDelimiterValue, stackValue,
+                     userPrint) where
 
 import Shiny.Vars
 import Shiny.Symbol
@@ -16,6 +18,9 @@ delimiterValue = getSymbolOrDefault delimiterName (String " ")
 
 dotDelimiterValue :: Symbols Expr Expr
 dotDelimiterValue = getSymbolOrDefault dotDelimiterName (String " . ")
+
+stackValue :: Symbols Expr Expr
+stackValue = getSymbolOrDefault stackName Nil
 
 userPrint :: Expr -> Symbols Expr String
 userPrint Nil = pure ""

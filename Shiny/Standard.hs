@@ -182,7 +182,11 @@ stdFuncs = fromList [
             (Var "forward", func forwardArgs),
             (Var ";;", func forwardArgs),
             (Var "pull-out", func pullOut),
-            (Var "p%", func pullOut)
+            (Var "p%", func pullOut),
+            (Var "stack-push", func stackPush),
+            (Var "vv", func stackPush),
+            (Var "stack-pop", func stackPop),
+            (Var "v%", func stackPop)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1267,3 +1271,35 @@ pullOut fs = let invoke [] = error "internal error in invoke"
                  t [] = invoke fs
                  t (x:xs) = invoke (fs ++ [x]) >>= \f' -> functionCall f' xs
               in pure . BuiltIn $ userFunc t
+
+{-
+ - (stack-push) - Pushes % onto #%; returns the new stack
+ - (stack-push x) - Pushes x onto #%; returns the new stack
+ - (stack-push x ... y) - Pushes each argument onto #%, last-to-first
+ - (vv) == (stack-push)
+ -}
+stackPush :: Function
+stackPush [] = implicitValue >>= \v -> stackPush [v]
+stackPush xs = do
+  stack <- fromExpr <$> stackValue
+  let stack' = xs ++ stack
+  setOrDefSymbol stackName $ toExpr stack'
+  return $ toExpr stack'
+
+{-
+ - (stack-pop) - Pops a value off #%, returning () if the stack is empty
+ - (stack-pop n) - Removes the nth value from #% (0-based, wrapping around as needed)
+ - (stack-pop n . m) - Ignores m
+ - (v%) == (stack-pop)
+ -}
+stackPop :: Function
+stackPop [] = do
+  stack <- fromExpr <$> stackValue
+  case stack of
+    []     -> return Nil
+    (s:ss) -> s <$ setOrDefSymbol stackName (toExpr ss)
+stackPop (n:_) = do
+  stack <- fromExpr <$> stackValue
+  let n' = fromExpr n `mod` genericLength stack :: Integer
+  setOrDefSymbol stackName . toExpr $ removeAt n' stack
+  pure . maybe Nil id $ wrappedNth stack n'

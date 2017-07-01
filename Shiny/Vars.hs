@@ -3,7 +3,7 @@ module Shiny.Vars(Var(..),
                   argumentNames, argListName, argumentBindings,
                   reArgumentNames, reArgListName, reArgumentBindings,
                   reFullName,
-                  implicitName, delimiterName, dotDelimiterName,
+                  implicitName, delimiterName, dotDelimiterName, stackName,
                   isImplicitlyGlobal) where
 
 -- TODO Unicode capitalization support
@@ -46,6 +46,9 @@ delimiterName = Var "#,"
 
 dotDelimiterName :: Var
 dotDelimiterName = Var "#,,"
+
+stackName :: Var
+stackName = Var "#%"
 
 isImplicitlyGlobal :: Var -> Bool
 isImplicitlyGlobal (Var ('#':_)) = True
