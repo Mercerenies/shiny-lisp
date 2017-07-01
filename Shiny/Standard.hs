@@ -178,7 +178,11 @@ stdFuncs = fromList [
             (Var "prime-factors", func primeFactors),
             (Var "pf", func primeFactors),
             (Var "prime-factorize", func primeFactors'),
-            (Var "pz", func primeFactors')
+            (Var "pz", func primeFactors'),
+            (Var "forward", func forwardArgs),
+            (Var ";;", func forwardArgs),
+            (Var "pull-out", func pullOut),
+            (Var "p%", func pullOut)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1227,3 +1231,45 @@ primeFactors' (p:_) = pure . toExpr . map toExpr $ helper (p' `div` 2) p' []
               | n <= 1 = acc
               | n `mod` r == 0 && isPrime r = helper r (n `div` r) (r : acc)
               | otherwise = helper (r - 1) n acc
+
+{-
+ - (forward) - ((forward) f g h) => (progn (f ...) (g ...) (h ...)) where ... is the
+ -             argument list at the time of invocation of (forward)
+ - (forward f ...) - ((forward f g h) x y z) => (progn (f x y . z) (g x y . z) (h x y . z))
+ -                   ((forward f g h)) => ((forward f g h) ())
+ - (;;) == (forward)
+ -}
+forwardArgs :: [Expr] -> Symbols Expr Expr
+forwardArgs [] = let t :: [Expr] -> [Expr] -> Symbols Expr Expr
+                     t as fs = mapM (\f -> functionCall f as) fs >>= \xs ->
+                               case xs of
+                                 [] -> pure Nil
+                                 ys -> pure $ last ys
+                 in BuiltIn . userFunc . t . fromExpr <$> argListValue
+forwardArgs fs = let arglist :: [Expr] -> [Expr]
+                     arglist [] = []
+                     arglist xs = init xs ++ fromExpr (last xs)
+                     t :: [Expr] -> Symbols Expr Expr
+                     t xs = mapM (\f -> functionCall f $ arglist xs) fs >>= \xs' ->
+                            case xs' of
+                              [] -> pure Nil
+                              ys -> pure $ last ys
+                 in pure . BuiltIn $ userFunc t
+
+{-
+ - (pull-out) - Returns 0 (TODO This)
+ - (pull-out f) - ((pull-out f) x y z) => ((f x) y z)
+ -                ((pull-out f)) => (f f)
+ - (pull-out f g ... h) - ((pull-out f g h) x y z) => ((f (g (h x))) y z)
+ -                        ((pull-out f g h)) => (f (g h))
+ - (p%) == (pull-out)
+ -}
+pullOut :: [Expr] -> Symbols Expr Expr
+pullOut [] = pure $ Number 0
+pullOut fs = let invoke [] = error "internal error in invoke"
+                 invoke [x] = pure x
+                 invoke (x:xs) = invoke xs >>= \r -> functionCall x [r]
+                 t :: [Expr] -> Symbols Expr Expr
+                 t [] = invoke fs
+                 t (x:xs) = invoke (fs ++ [x]) >>= \f' -> functionCall f' xs
+              in pure . BuiltIn $ userFunc t

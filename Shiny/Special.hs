@@ -1,9 +1,12 @@
 
-module Shiny.Special(implicitValue, delimiterValue, dotDelimiterValue, userPrint) where
+module Shiny.Special(argListValue, implicitValue, delimiterValue, dotDelimiterValue, userPrint) where
 
 import Shiny.Vars
 import Shiny.Symbol
 import Shiny.Structure
+
+argListValue :: Symbols Expr Expr
+argListValue = getSymbolOrDefault argListName Nil
 
 implicitValue :: Symbols Expr Expr
 implicitValue = getSymbolOrDefault implicitName Nil
