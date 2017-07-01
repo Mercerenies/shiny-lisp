@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 
-module Shiny.Structure(Func(..), Expr(..),
+module Shiny.Structure(Func(..), Expr(..), Function,
                        toVar, toVars, printable,
                        true, false,
                        func, func', userFunc, nFunc, sFunc,
@@ -20,7 +20,7 @@ data FuncValue = FuncNone |
                  deriving (Show, Eq, Ord, Read)
 
 data Func = Func {
-      runFunc :: [Expr] -> Symbols Expr Expr,
+      runFunc :: Function,
       isBuiltIn :: Bool,
       functionalValue :: FuncValue
     }
@@ -41,6 +41,8 @@ instance Eq Func where
 
 instance Show Func where
     show (Func {}) = "Func"
+
+type Function = [Expr] -> Symbols Expr Expr
 
 toVar :: Expr -> Maybe Var
 toVar (Atom x) = Just $ Var x
@@ -77,22 +79,22 @@ printCons x (Cons y z) = printable x ++ " " ++ printCons y z
 printCons x Nil        = printable x
 printCons x x1         = printable x ++ " . " ++ printable x1
 
-simpleFunc :: ([Expr] -> Symbols Expr Expr) -> Func
+simpleFunc :: Function -> Func
 simpleFunc f = Func f True FuncNone
 
-func :: ([Expr] -> Symbols Expr Expr) -> Expr
+func :: Function -> Expr
 func = BuiltIn . simpleFunc
 
-func' :: ([Expr] -> Symbols Expr Expr) -> Expr
+func' :: Function -> Expr
 func' = Special . simpleFunc
 
-nFunc :: Integer -> ([Expr] -> Symbols Expr Expr) -> Expr
+nFunc :: Integer -> Function -> Expr
 nFunc n f = BuiltIn $ Func f True (FuncNumber n)
 
-sFunc :: String -> ([Expr] -> Symbols Expr Expr) -> Expr
+sFunc :: String -> Function -> Expr
 sFunc s f = BuiltIn $ Func f True (FuncString s)
 
-userFunc :: ([Expr] -> Symbols Expr Expr) -> Func
+userFunc :: Function -> Func
 userFunc f = Func f False FuncNone
 
 funcToNumber :: Func -> Integer

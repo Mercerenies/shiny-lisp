@@ -1,6 +1,7 @@
 
 module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM,
-                  rotateChar, chr', replaceString, replaceStringM, countOccurrences) where
+                  rotateChar, chr', replaceString, replaceStringM, countOccurrences,
+                  lastOrDefault) where
 
 import Data.Char
 import Data.List
@@ -77,3 +78,7 @@ countOccurrences [] _ = 0
 countOccurrences as bs
     | take (length bs) as == bs = 1 + countOccurrences (tail as) bs
     | otherwise                 =     countOccurrences (tail as) bs
+
+lastOrDefault :: a -> [a] -> a
+lastOrDefault x [] = x
+lastOrDefault _ xs = last xs

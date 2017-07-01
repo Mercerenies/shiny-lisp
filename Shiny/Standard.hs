@@ -207,7 +207,7 @@ standardState = [standard]
  - (= x1 .. xn y) Set x1, x2, ... xn equal to y (y is evaluated once); returns y
  - In any case, any variable xi's which are not atoms are ignored
  -}
-assignment :: [Expr] -> Symbols Expr Expr
+assignment :: Function
 assignment [] = pure Nil
 assignment [x] = assignment [Atom "%", x]
 assignment xs = do
@@ -223,7 +223,7 @@ assignment xs = do
  - (quote x ...) - Return x and ignore the other arguments
  - In any case, (q) may be used in place of (quote)
  -}
-quote :: [Expr] -> Symbols Expr Expr
+quote :: Function
 quote [] = pure Nil
 quote (x:_) = pure x
 
@@ -231,7 +231,7 @@ quote (x:_) = pure x
  - (progn . any) - Evaluates all of the expressions given in order
  - (pgn) is an abbreviation for (progn)
  -}
-progn :: [Expr] -> Symbols Expr Expr
+progn :: Function
 progn [] = pure Nil
 progn xs = pure $ last xs
 
@@ -239,7 +239,7 @@ progn xs = pure $ last xs
  - (list . any) - Produces a list containing the evaluated elements
  - (l) is an abbreviation for (list)
  -}
-list :: [Expr] -> Symbols Expr Expr
+list :: Function
 list = pure . toExpr
 
 {-
@@ -247,7 +247,7 @@ list = pure . toExpr
  - (puts . any) - Prints each element (evaluated), on its own line; returns Nil
  - (puts) == (pu)
  -}
-puts :: [Expr] -> Symbols Expr Expr
+puts :: Function
 puts [] = do
   value <- implicitValue
   userPrint value >>= liftIO . putStrLn
@@ -259,7 +259,7 @@ puts xs = do
 {-
  - (p . any) - Adds the elements
  -}
-plus :: [Expr] -> Symbols Expr Expr
+plus :: Function
 plus xs = do
   return . Number . getSum $ foldMap (Sum . fromExpr) xs
 
@@ -268,7 +268,7 @@ plus xs = do
  - (m x) - Negate value
  - (m x y . any) - Subtract latter elements from the first
  -}
-minus :: [Expr] -> Symbols Expr Expr
+minus :: Function
 minus [] = pure $ Number (-1)
 minus [x] = pure $ Number (- fromExpr x)
 minus (x:xs) = do
@@ -277,7 +277,7 @@ minus (x:xs) = do
 {-
  - (& . any) - Multiples the elements (note: & is lowercase of *)
  -}
-times :: [Expr] -> Symbols Expr Expr
+times :: Function
 times xs = do
   return . Number . getProduct $ foldMap (Product . fromExpr) xs
 
@@ -287,7 +287,7 @@ times xs = do
  - (/ x y . any) - Divide latter elements from the first
  - Division by zero yields the dividend
  -}
-divs :: [Expr] -> Symbols Expr Expr
+divs :: Function
 divs [] = pure $ Number 10
 divs [_] = pure $ Number 0
 divs (x:xs) = do
@@ -303,7 +303,7 @@ divs (x:xs) = do
  - (cond . odd) - Odd number of arguments, last arg is "else"-clause
  - (i) is an abbreviation for (cond)
  -}
-ifStmt :: [Expr] -> Symbols Expr Expr
+ifStmt :: Function
 ifStmt [] = pure Nil
 ifStmt [x] = evaluate x
 ifStmt (x:y:xs) = do
@@ -318,7 +318,7 @@ ifStmt (x:y:xs) = do
  - (== x) - Returns whether % equals x
  - (== x y . any) - Returns true iff all expressions (all evaluated) are equal
  -}
-equality :: [Expr] -> Symbols Expr Expr
+equality :: Function
 equality [] = pure $ Number 100
 equality [x] = implicitValue >>= \y -> equality [x, y]
 equality xs = return . toExpr . all (uncurry eql) $ pairs xs
@@ -330,14 +330,14 @@ pairs (x:y:ys) = (x, y) : pairs (y:ys)
 
 sequential :: [Expr] -> Func
 sequential xs = userFunc helper
-    where helper :: [Expr] -> Symbols Expr Expr
+    where helper :: Function
           helper [] = helper [Number 0]
           helper (n:_) = let n' = fromExpr n :: Integer
                          in pure $ xs `genericIndex` n'
 
 sequential' :: [Expr] -> Func
 sequential' xs = userFunc helper
-    where helper :: [Expr] -> Symbols Expr Expr
+    where helper :: Function
           helper [] = helper [Number 1]
           helper (n:_) = let n' = fromExpr n :: Integer
                          in pure . toExpr $ genericTake n' xs
@@ -358,7 +358,7 @@ sequential' xs = userFunc helper
  -   (sqg n . y) - Returns the first n elements of the sequence
  - (sequence) == (sq)
  -}
-sequenceExpr :: [Expr] -> Symbols Expr Expr
+sequenceExpr :: Function
 sequenceExpr [] = sequenceExpr [Number 0]
 sequenceExpr (n:ss) = do
   let fibo x y = Number x : fibo y (x + y)
@@ -401,7 +401,7 @@ listCdr z = z
  - (tk) == (take) == (car)
  - Example of that last one: (tk 2 3 2 '(1 2 3 4 5 6 7 8 9)) => '((1 2) (3 4 5) (6 7))
  -}
-takeExpr :: [Expr] -> Symbols Expr Expr
+takeExpr :: Function
 takeExpr [] = pure $ Number 10000
 takeExpr [x] = pure $ listCar x
 takeExpr [n, x] = pure . toExpr $ consTake (fromExpr n) x
@@ -418,7 +418,7 @@ takeExpr xs = do
  - (dp) == (drop) == (cdr)
  - Example of that last one: (dp 2 3 2 '(1 2 3 4)) => '((3 4) (2 3 4) (3 4))
  -}
-dropExpr :: [Expr] -> Symbols Expr Expr
+dropExpr :: Function
 dropExpr [] = pure $ Number 2048
 dropExpr [x] = pure $ listCdr x
 dropExpr [n, x] = pure . toExpr $ consDrop (fromExpr n) x
@@ -433,7 +433,7 @@ dropExpr xs = do
  - (apply f x y ... xs) - Applies the function to the arglist
  - (ap) is an abbreviation for (apply)
  -}
-applyExpr :: [Expr] -> Symbols Expr Expr
+applyExpr :: Function
 applyExpr [] = pure $ Number 2147483647
 applyExpr [f] = functionCall f [f]
 applyExpr (f:xs) = do
@@ -447,7 +447,7 @@ applyExpr (f:xs) = do
  - (map f . xss) - Map the function over the lists, zipping them together and taking the length of the shortest
  - (a) == (map)
  -}
-mapExpr :: [Expr] -> Symbols Expr Expr
+mapExpr :: Function
 mapExpr [] = pure $ String ['A'..'Z']
 mapExpr [xs] = pure . expressed (reverse :: [Expr] -> [Expr]) $ xs
 mapExpr (f:xss) = toExpr <$> helper (map fromExpr xss)
@@ -465,7 +465,7 @@ mapExpr (f:xss) = toExpr <$> helper (map fromExpr xss)
  - (filter f xs . y) - Ignores y
  - (e) == (filter)
  -}
-filterExpr :: [Expr] -> Symbols Expr Expr
+filterExpr :: Function
 filterExpr [] = pure $ String ['a'..'z']
 filterExpr [xs] = pure . expressed (filter fromExpr) $ xs
 filterExpr (f:xs:_) = do
@@ -492,7 +492,7 @@ filterExpr (f:xs:_) = do
 assertOrdering :: (a -> a -> Bool) -> (Expr -> a) -> [Expr] -> Bool
 assertOrdering order f xs = all (uncurry order) . pairs $ map f xs
 
-orderingOp :: (a -> a -> Bool) -> (Expr -> a) -> ([Expr] -> Symbols Expr Expr)
+orderingOp :: (a -> a -> Bool) -> (Expr -> a) -> (Function)
 orderingOp order f xs  = pure . toExpr $ assertOrdering order f xs
 
 {-
@@ -502,7 +502,7 @@ orderingOp order f xs  = pure . toExpr $ assertOrdering order f xs
  - (rg) == (range)
  - Example: (rg 5 7 3) => '(5 6 7 6 5 4 3)
  -}
-rangeExpr :: [Expr] -> Symbols Expr Expr
+rangeExpr :: Function
 rangeExpr [] = pure $ Number 1337
 rangeExpr [x] = pure . toExpr . map toExpr $ [1 :: Integer .. fromExpr x]
 rangeExpr xs = pure . toExpr . map Number . rangeHelper $ map fromExpr xs
@@ -516,7 +516,7 @@ rangeExpr xs = pure . toExpr . map Number . rangeHelper $ map fromExpr xs
 {-
  - (quit . xs) - Abort the program immediately
  -}
-quitProg :: [Expr] -> Symbols Expr Expr
+quitProg :: Function
 quitProg _ = liftIO exitSuccess
 
 {-
@@ -525,7 +525,7 @@ quitProg _ = liftIO exitSuccess
  - (cons x y ... z) = (x y ... . z)
  - (c) == (cons)
  -}
-consExpr :: [Expr] -> Symbols Expr Expr
+consExpr :: Function
 consExpr [] = pure $ Cons Nil Nil
 consExpr [x] = pure $ Cons x x
 consExpr [x, y] = pure $ Cons x y
@@ -536,7 +536,7 @@ consExpr (x:xs) = Cons x <$> consExpr xs
  - (bitand x ...) - Bitwise and together
  - (b&) == (bitand)
  -}
-andExpr :: [Expr] -> Symbols Expr Expr
+andExpr :: Function
 andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map fromExpr
 
 {-
@@ -544,7 +544,7 @@ andExpr = pure . Number . foldr (.&.) (complement zeroBits) . map fromExpr
  - (bitor x ...) - Bitwise or together
  - (b;) = (bitor)
  -}
-orExpr :: [Expr] -> Symbols Expr Expr
+orExpr :: Function
 orExpr = pure . Number . foldr (.|.) zeroBits . map fromExpr
 
 {-
@@ -553,7 +553,7 @@ orExpr = pure . Number . foldr (.|.) zeroBits . map fromExpr
  - (bitxor x ...) - Bitwise xor together
  - (b%) = (bitxor)
  -}
-xorExpr :: [Expr] -> Symbols Expr Expr
+xorExpr :: Function
 xorExpr [] = pure $ Number 256
 xorExpr [x] = pure . Number . complement $ fromExpr x
 xorExpr xs = pure . Number . foldr1 xor . map fromExpr $ xs
@@ -564,7 +564,7 @@ xorExpr xs = pure . Number . foldr1 xor . map fromExpr $ xs
  - (boolnorm x ... y) - Each value normalized, put into a list
  - (bn) == (boolnorm)
  -}
-boolNorm :: [Expr] -> Symbols Expr Expr
+boolNorm :: Function
 boolNorm [] = pure $ Number 999
 boolNorm [x] = pure . Number $ if fromExpr x then 1 else 0
 boolNorm xs = toExpr <$> mapM (boolNorm . return) xs
@@ -576,17 +576,17 @@ boolNorm xs = toExpr <$> mapM (boolNorm . return) xs
  - (hook f g ... h) - ((hook f g g1 ... gn) x y ... z) = (f (g x) (g1 y) ... (gn z)) ; (Uses shorter of two lists)
  - (hk) == (hook)
  -}
-hook :: [Expr] -> Symbols Expr Expr
-hook [] = let t :: [Expr] -> Symbols Expr Expr
+hook :: Function
+hook [] = let t :: Function
               t xs = pure . toExpr $ reverse xs
           in pure . BuiltIn $ userFunc t
-hook [f] = let t :: [Expr] -> Symbols Expr Expr
+hook [f] = let t :: Function
                t xs = functionCall f $ reverse xs
            in pure . BuiltIn $ userFunc t
-hook [f, g] = let t :: [Expr] -> Symbols Expr Expr
+hook [f, g] = let t :: Function
                   t xs = mapM (functionCall g . pure) xs >>= functionCall f
               in pure $ func t
-hook (f:gs) = let t :: [Expr] -> Symbols Expr Expr
+hook (f:gs) = let t :: Function
                   t xs = zipWithM (\g x -> functionCall g $ pure x) gs xs >>= functionCall f
               in pure $ func t
 
@@ -596,7 +596,7 @@ hook (f:gs) = let t :: [Expr] -> Symbols Expr Expr
  - (id x y ... z) - Returns x
  - (d) == (id)
  -}
-idFunc :: [Expr] -> Symbols Expr Expr
+idFunc :: Function
 idFunc [] = pure Nil
 idFunc (x:_) = pure x
 
@@ -605,7 +605,7 @@ idFunc (x:_) = pure x
  - (compose . fs) - Compose the functions, right-to-left; ((compose f g) x) is (f (g x))
  - (,) == (compose)
  -}
-compose :: [Expr] -> Symbols Expr Expr
+compose :: Function
 compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFunc
 
 {-
@@ -617,7 +617,7 @@ compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFu
  - IMPORTANT NOTE: The sorting function should not carry side effects; it will be called an
  -                 unspecified number of times.
  -}
-sortExpr :: [Expr] -> Symbols Expr Expr
+sortExpr :: Function
 sortExpr [] = pure $ toExpr (Number <$> [1..10])
 sortExpr [xs] = pure . (expressed $ sortBy (compare `on` (fromExpr :: Expr -> Integer))) $ xs
 sortExpr [f, xs] = toExpr <$> sortByM order (fromExpr xs)
@@ -638,7 +638,7 @@ sortExpr (f:xs) = sortExpr [f, toExpr xs]
  - (//) == (divides)
  - Division by zero always results in a false expression
  -}
-divides :: [Expr] -> Symbols Expr Expr
+divides :: Function
 divides [] = pure $ Number (-100)
 divides [x] = let check :: Integer -> Bool
                   check 0 = False
@@ -663,7 +663,7 @@ divides (x:y:xs) = do
  - (fl) == (foldl)
  - In the third case, if the list is empty and no extra arguments are supplied, returns nil
  -}
-foldlExpr :: [Expr] -> Symbols Expr Expr
+foldlExpr :: Function
 foldlExpr [] = pure $ Number 1000000
 foldlExpr [xs] = pure . Number . sum . map fromExpr $ fromExpr xs
 foldlExpr (f:ys) = case init ys ++ fromExpr (last ys) of
@@ -677,7 +677,7 @@ foldlExpr (f:ys) = case init ys ++ fromExpr (last ys) of
  - (fr) == (foldr)
  - In the third case, if the list is empty and no extra arguments are supplied, returns nil
  -}
-foldrExpr :: [Expr] -> Symbols Expr Expr
+foldrExpr :: Function
 foldrExpr [] = pure $ Number (-1000000)
 foldrExpr [xs] = pure . Number . product . map fromExpr $ fromExpr xs
 foldrExpr (f:ys) = case init ys ++ fromExpr (last ys) of
@@ -690,7 +690,7 @@ foldrExpr (f:ys) = case init ys ++ fromExpr (last ys) of
  - (join f x ... y) - ((join f) x ... y)
  - (jn) == (join)
  -}
-joinExpr :: [Expr] -> Symbols Expr Expr
+joinExpr :: Function
 joinExpr [] = let t xs = pure . (toExpr :: [Expr] -> Expr) . concatMap (\x -> [x, x]) $ xs
               in pure . BuiltIn $ userFunc t
 joinExpr [f] = let t xs = functionCall f $ concatMap (\x -> [x, x]) xs
@@ -705,7 +705,7 @@ joinExpr (f:xs) = joinExpr [f] >>= \f' -> functionCall f' xs
  - Modulo by zero yields the dividend
  - Note that the sign of the modulo always matches the sign of the divisor
  -}
-modExpr :: [Expr] -> Symbols Expr Expr
+modExpr :: Function
 modExpr [] = pure $ Number 500
 modExpr [x] = pure . Number . (`mod` 10) . fromExpr $ x
 modExpr (x:y:_) = pure . Number $ (mod' `on` fromExpr) x y
@@ -718,7 +718,7 @@ modExpr (x:y:_) = pure . Number $ (mod' `on` fromExpr) x y
  - (even . xs) - Returns a list of booleans
  - (ev) == (even)
  -}
-evenExpr :: [Expr] -> Symbols Expr Expr
+evenExpr :: Function
 evenExpr [] = pure $ Number 64
 evenExpr [x] = pure . expressed (even :: Integer -> Bool) $ x
 evenExpr xs = pure . toExpr . map (expressed (even :: Integer -> Bool)) $ xs
@@ -729,7 +729,7 @@ evenExpr xs = pure . toExpr . map (expressed (even :: Integer -> Bool)) $ xs
  - (odd . xs) - Returns a list of booleans
  - (od) == (odd)
  -}
-oddExpr :: [Expr] -> Symbols Expr Expr
+oddExpr :: Function
 oddExpr [] = pure $ Number 32
 oddExpr [x] = pure . expressed (odd :: Integer -> Bool) $ x
 oddExpr xs = pure . toExpr . map (expressed $ (odd :: Integer -> Bool)) $ xs
@@ -739,7 +739,7 @@ oddExpr xs = pure . toExpr . map (expressed $ (odd :: Integer -> Bool)) $ xs
  - (strings . xs) - Concatenate strings
  - (s) == (strings)
  -}
-stringConcat :: [Expr] -> Symbols Expr Expr
+stringConcat :: Function
 stringConcat = pure . String . fold . map fromExpr
 
 {-
@@ -748,7 +748,7 @@ stringConcat = pure . String . fold . map fromExpr
  - (prime . xs) - Returns a list of booleans
  - (pm) == (prime)
  -}
-primeExpr :: [Expr] -> Symbols Expr Expr
+primeExpr :: Function
 primeExpr [] = pure $ Number 128
 primeExpr [x] = pure . expressed (isPrime :: Integer -> Bool) $ x
 primeExpr xs = pure . toExpr . map (expressed (isPrime :: Integer -> Bool)) $ xs
@@ -760,7 +760,7 @@ primeExpr xs = pure . toExpr . map (expressed (isPrime :: Integer -> Bool)) $ xs
  - (up x ... y) - Uses right-tower
  - For these purposes, 0^0 = 1
  -}
-powerExpr :: [Expr] -> Symbols Expr Expr
+powerExpr :: Function
 powerExpr [] = pure $ Number 9999
 powerExpr [x] = pure . Number . join (*) . fromExpr $ x
 powerExpr xs = let xs' = map fromExpr xs
@@ -771,7 +771,7 @@ powerExpr xs = let xs' = map fromExpr xs
  - (mo) - Returns % minus 1
  - (mo . xs) - Equivalent to (m ,@xs 1)
  -}
-minusOne :: [Expr] -> Symbols Expr Expr
+minusOne :: Function
 minusOne [] = implicitValue >>= \x -> minusOne [x]
 minusOne xs = minus $ xs ++ [Number 1]
 
@@ -779,7 +779,7 @@ minusOne xs = minus $ xs ++ [Number 1]
  - (po) - Returns % plus 1
  - (po . xs) - Equivalent to (p ,@xs 1)
  -}
-plusOne :: [Expr] -> Symbols Expr Expr
+plusOne :: Function
 plusOne [] = implicitValue >>= \x -> plusOne [x]
 plusOne xs = plus $ xs ++ [Number 1]
 
@@ -787,7 +787,7 @@ plusOne xs = plus $ xs ++ [Number 1]
  - (mt) - Returns % minus 2
  - (mt . xs) - Equivalent to (m ,@xs 2)
  -}
-minusTwo :: [Expr] -> Symbols Expr Expr
+minusTwo :: Function
 minusTwo [] = implicitValue >>= \x -> minusTwo [x]
 minusTwo xs = minus $ xs ++ [Number 2]
 
@@ -795,7 +795,7 @@ minusTwo xs = minus $ xs ++ [Number 2]
  - (pt) - Returns % plus 2
  - (pt . xs) - Equivalent to (p ,@xs 2)
  -}
-plusTwo :: [Expr] -> Symbols Expr Expr
+plusTwo :: Function
 plusTwo [] = implicitValue >>= \x -> plusTwo [x]
 plusTwo xs = plus $ xs ++ [Number 2]
 
@@ -807,7 +807,7 @@ plusTwo xs = plus $ xs ++ [Number 2]
  - (split x y ... z d) - Splits each string into lists, flattening
  - (sp) == (split)
  -}
-splitExpr :: [Expr] -> Symbols Expr Expr
+splitExpr :: Function
 splitExpr [] = pure $ String "0123456789"
 splitExpr [x] = splitExpr [x, String " "]
 splitExpr [x, d] | null (fromExpr d :: String) = let f :: String -> [Expr]
@@ -825,7 +825,7 @@ splitExpr xs = let xs' = init xs
  - (inter xs ys ... zs d) - Joins all of the lists, collectively
  - (ps) == (inter)
  -}
-interExpr :: [Expr] -> Symbols Expr Expr
+interExpr :: Function
 interExpr [] = pure $ String ")!@#$%^&*("
 interExpr [x] = interExpr [x, String " "]
 interExpr [x, d] = pure . String $ intercalate (fromExpr d) (map fromExpr $ fromExpr x)
@@ -842,7 +842,7 @@ interExpr xs = let xs' = init xs
  - (it) == (insert)
  - The argument xs is always coerced to a list
  -}
-insertExpr :: [Expr] -> Symbols Expr Expr
+insertExpr :: Function
 insertExpr [] = pure $ Number 0
 insertExpr [xs] = insertExpr [Nil, xs]
 insertExpr [x, xs] = pure . expressed (++ [x]) $ xs
@@ -858,7 +858,7 @@ insertExpr (x:y:xs) = do
  - (rm) == (remove)
  - The argument xs is always coerced to a list
  -}
-removeExpr :: [Expr] -> Symbols Expr Expr
+removeExpr :: Function
 removeExpr [] = pure $ Number 0
 removeExpr [xs] = let init' :: [Expr] -> [Expr]
                       init' [] = []
@@ -877,7 +877,7 @@ removeExpr (x:xs) = do
  - (nh) == (nth)
  - Index is always done (mod lenxs), if list is empty, nil is returned
  -}
-nthExpr :: [Expr] -> Symbols Expr Expr
+nthExpr :: Function
 nthExpr [] = pure $ Number 0
 nthExpr [xs] = let last' [] = Nil
                    last' as = last as
@@ -895,7 +895,7 @@ nthExpr ms = let ns = init ms
  - (read x ... y) - Reads each expression; returns a list
  - (rd) == (read)
  -}
-readStmt :: [Expr] -> Symbols Expr Expr
+readStmt :: Function
 readStmt [] = pure Nil
 readStmt [x] = pure $ case readSingleExpr $ fromExpr x of
                         Left s -> String s -- TODO Something error-related here
@@ -906,7 +906,7 @@ readStmt xs = toExpr <$> mapM (\x -> readStmt [x]) xs
  - (eval) - Nil
  - (eval x ... y) - Evaluates the expressions in sequence
  -}
-evalStmt :: [Expr] -> Symbols Expr Expr
+evalStmt :: Function
 evalStmt = evalSeq
 
 {-
@@ -915,7 +915,7 @@ evalStmt = evalSeq
  - (two-curry f x y .... z) - ((two-curry f x y .... z) a b ... c) => (f x y ... z a b ... c)
  - (tc) == (two-curry)
  -}
-twoCurry :: [Expr] -> Symbols Expr Expr
+twoCurry :: Function
 twoCurry [] = pure $ Number 1000
 twoCurry [f] = let t = pure . BuiltIn . userFunc . s
                    s xs ys = functionCall f (xs ++ ys)
@@ -929,7 +929,7 @@ twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
  - (seq-while seq f ... g) - Return the longest prefix satisfying f ... g
  - (sw) == (seq-while)
  -}
-seqWhile :: [Expr] -> Symbols Expr Expr
+seqWhile :: Function
 seqWhile [] = pure $ Number 0
 seqWhile [xs] = fmap toExpr $ sequence [functionCall xs [Number n] | n <- [0..99]]
 seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCall f [x]) fs
@@ -942,7 +942,7 @@ seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCa
  - (print-greek n ... m) - Does (print-greek i) for each n ... m
  - (pgk) == (print-greek)
  -}
-printGreek :: [Expr] -> Symbols Expr Expr
+printGreek :: Function
 printGreek [] = pure $ Number 0
 printGreek [n] = let i = fromInteger (fromExpr n) `mod` length greek
                  in Nil <$ (liftIO . putStrLn $ greek !! i)
@@ -956,7 +956,7 @@ printGreek ns = Nil <$ mapM (printGreek . return) ns
  - (each-char s f ... g) - Cycle through f ... g for the characters
  - (ec) == (each-char)
  -}
-eachChar :: [Expr] -> Symbols Expr Expr
+eachChar :: Function
 eachChar [] = pure $ Number 0
 eachChar [s] = pure $ expressed (map $ rotateChar 13) s
 eachChar [s, Number n] = pure $ expressed (map . rotateChar $ fromInteger n) s
@@ -971,7 +971,7 @@ eachChar (s : fs) = let operation f x = (chr' . fromExpr) <$> functionCall f [to
  - (string-replace x y z . t) - Ignores the remaining arguments (TODO Change this)
  - (sr) == (string-replace)
  -}
-stringRepl :: [Expr] -> Symbols Expr Expr
+stringRepl :: Function
 stringRepl [] = pure $ Number 0
 stringRepl [x] = pure $ expressed (filter (liftM2 (||) isAlphaNum (== '_'))) x
 stringRepl [x, y] = pure . toExpr $ replaceString (fromExpr x) (fromExpr y) ""
@@ -992,7 +992,7 @@ stringRepl xs = stringRepl $ take 3 xs
  - * ucx - Uppercase using ShinyLisp rules
  - * lcx - Lowercase using ShinyLisp rules
  -}
-caseOp :: (Char -> Char) -> [Expr] -> Symbols Expr Expr
+caseOp :: (Char -> Char) -> Function
 caseOp op [] = expressed (map op) <$> implicitValue
 caseOp op [x] = pure $ expressed (map op) x
 caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
@@ -1004,7 +1004,7 @@ caseOp op xs = pure . toExpr $ map (expressed $ map op) xs
  - (sd) == (sum-digits)
  - Note: Negative numbers are always absolute-valued before applying this function
  -}
-sumDigits :: [Expr] -> Symbols Expr Expr
+sumDigits :: Function
 sumDigits [] = pure $ Number 0
 sumDigits xs = let digits :: Integer -> [Integer]
                    digits = map (toInteger . subtract (ord '0') . ord) . show . abs
@@ -1016,7 +1016,7 @@ sumDigits xs = let digits :: Integer -> [Integer]
  - (gets n . m) - Reads n lines of input
  - (ge) == (gets)
  -}
-gets :: [Expr] -> Symbols Expr Expr
+gets :: Function
 gets [] = toExpr <$> liftIO getLine
 gets [n] = liftIO . fmap (toExpr . map toExpr) $ replicateM (fromExpr n) getLine
 gets (n:_) = gets [n]
@@ -1028,7 +1028,7 @@ gets (n:_) = gets [n]
  -   the screen. At the end of the final iteration, if % was bound by the loop, then % is unbound to
  -   prevent a redundant print.
  -}
-interaction :: [Expr] -> Symbols Expr Expr
+interaction :: Function
 interaction xs = do
   bound <- hasSymbol implicitName
   result <- loop
@@ -1060,7 +1060,7 @@ interaction xs = do
  - (print) == (pn)
  - Note that (print) prints a representation-friendly form while (puts) prints a user-friendly form
  -}
-putsPrint :: [Expr] -> Symbols Expr Expr
+putsPrint :: Function
 putsPrint [] = do
   value <- implicitValue
   liftIO . putStrLn $ printable value
@@ -1075,7 +1075,7 @@ putsPrint xs = do
  - (define x ... y) - Binds each variable locally, returning the value of the last one
  - (define) == (,-)
  -}
-defineVar :: [Expr] -> Symbols Expr Expr
+defineVar :: Function
 defineVar [] = defineVar [Atom "%"]
 defineVar xs = do
   result <- forM (toVars xs) $ \x -> do
@@ -1090,7 +1090,7 @@ defineVar xs = do
  - (undefine x ... y) - Unbinds each variable (not evaluated), skipping any which do not exist
  - (undefine) == (-,)
  -}
-undefineVar :: [Expr] -> Symbols Expr Expr
+undefineVar :: Function
 undefineVar [] = undefineVar [Atom "%"]
 undefineVar xs = do
   forM_ (toVars xs) $ \x -> do
@@ -1104,7 +1104,7 @@ undefineVar xs = do
  - (argv n ... m) - Returns a list containing each argument
  - (argv) == (av)
  -}
-getArgv :: [Expr] -> Symbols Expr Expr
+getArgv :: Function
 getArgv [] = toExpr . map toExpr <$> liftIO getArgs
 getArgv ns = do
   args <- liftIO getArgs
@@ -1118,7 +1118,7 @@ getArgv ns = do
 {-
  - (reset . args) - Resets the environment to its starting state before continuing execution
  -}
-resetState :: [Expr] -> Symbols Expr Expr
+resetState :: Function
 resetState _ = do
   depth <- callStackDepth
   if depth <= 2 then -- Global state + resetState state
@@ -1133,7 +1133,7 @@ resetState _ = do
  - (match-count r s ...) - Returns the number of times the regex matches in any of the strings
  - (match-count) == (mc)
  -}
-matchCount :: [Expr] -> Symbols Expr Expr
+matchCount :: Function
 matchCount [] = pure $ Number 0
 matchCount [r] = implicitValue >>= \value -> matchCount [r, value]
 matchCount [r, value] =
@@ -1155,7 +1155,7 @@ matchCount (s:ss) = do
  - to rx, ry, rz, rxx ..., the list of capture groups is bound to r!, and the full match is
  - bound to rr
  -}
-matchRegexp :: [Expr] -> Symbols Expr Expr
+matchRegexp :: Function
 matchRegexp [] = pure $ Number 0
 matchRegexp [r] = implicitValue >>= \value -> matchRegexp [r, value]
 matchRegexp (pat:ss) = matchOver ss
@@ -1182,7 +1182,7 @@ matchRegexp (pat:ss) = matchOver ss
  - bound to the regex variables rx, ry, rz, ... as well as r! and rr. The return value will also
  - happily interpolate the values \1, \2, ... and \&.
  -}
-replaceRegexp :: [Expr] -> Symbols Expr Expr -- TODO We need to handle the empty regexp case
+replaceRegexp :: Function -- TODO We need to handle the empty regexp case
 replaceRegexp [] = pure $ Number 0
 replaceRegexp [r] = replaceRegexp [r, String ""]
 replaceRegexp [r, s] = implicitValue >>= \value -> replaceRegexp [value, r, s]
@@ -1208,7 +1208,7 @@ replaceRegexp (t:r:s:_) = expressedM doReplacement t
  - (pf) == (prime-factors)
  - NOTE: abs if negative; 0 and 1 return ()
  -}
-primeFactors :: [Expr] -> Symbols Expr Expr
+primeFactors :: Function
 primeFactors [] = pure $ Number 0
 primeFactors (p:_) = let p' :: Integer
                          p' = abs $ fromExpr p
@@ -1222,7 +1222,7 @@ primeFactors (p:_) = let p' :: Integer
  - (pz) == (prime-factorize)
  - NOTE: abs if negative; 0 and 1 return ()
  -}
-primeFactors' :: [Expr] -> Symbols Expr Expr
+primeFactors' :: Function
 primeFactors' [] = pure $ Number 0
 primeFactors' (p:_) = pure . toExpr . map toExpr $ helper (p' `div` 2) p' []
     where p' :: Integer
@@ -1239,21 +1239,15 @@ primeFactors' (p:_) = pure . toExpr . map toExpr $ helper (p' `div` 2) p' []
  -                   ((forward f g h)) => ((forward f g h) ())
  - (;;) == (forward)
  -}
-forwardArgs :: [Expr] -> Symbols Expr Expr
-forwardArgs [] = let t :: [Expr] -> [Expr] -> Symbols Expr Expr
-                     t as fs = mapM (\f -> functionCall f as) fs >>= \xs ->
-                               case xs of
-                                 [] -> pure Nil
-                                 ys -> pure $ last ys
+forwardArgs :: Function
+forwardArgs [] = let t :: [Expr] -> Function
+                     t as fs = lastOrDefault Nil <$> mapM (\f -> functionCall f as) fs
                  in BuiltIn . userFunc . t . fromExpr <$> argListValue
 forwardArgs fs = let arglist :: [Expr] -> [Expr]
                      arglist [] = []
                      arglist xs = init xs ++ fromExpr (last xs)
-                     t :: [Expr] -> Symbols Expr Expr
-                     t xs = mapM (\f -> functionCall f $ arglist xs) fs >>= \xs' ->
-                            case xs' of
-                              [] -> pure Nil
-                              ys -> pure $ last ys
+                     t :: Function
+                     t xs = lastOrDefault Nil <$> mapM (\f -> functionCall f $ arglist xs) fs
                  in pure . BuiltIn $ userFunc t
 
 {-
@@ -1264,12 +1258,12 @@ forwardArgs fs = let arglist :: [Expr] -> [Expr]
  -                        ((pull-out f g h)) => (f (g h))
  - (p%) == (pull-out)
  -}
-pullOut :: [Expr] -> Symbols Expr Expr
+pullOut :: Function
 pullOut [] = pure $ Number 0
 pullOut fs = let invoke [] = error "internal error in invoke"
                  invoke [x] = pure x
                  invoke (x:xs) = invoke xs >>= \r -> functionCall x [r]
-                 t :: [Expr] -> Symbols Expr Expr
+                 t :: Function
                  t [] = invoke fs
                  t (x:xs) = invoke (fs ++ [x]) >>= \f' -> functionCall f' xs
               in pure . BuiltIn $ userFunc t
