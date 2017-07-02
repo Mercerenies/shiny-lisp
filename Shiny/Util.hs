@@ -1,7 +1,8 @@
 
-module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, wrappedNth, takeWhileM,
+module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, replaceAt,
+                  wrappedNth, takeWhileM,
                   rotateChar, chr', replaceString, replaceStringM, countOccurrences,
-                  lastOrDefault) where
+                  lastOrDefault, padWith) where
 
 import Data.Char
 import Data.List
@@ -37,6 +38,11 @@ removeAt n xs | n < 0 = xs
 removeAt n xs = case genericSplitAt n xs of
                   (ls, _:rs) -> ls ++ rs
                   (ls, rs) -> ls ++ rs
+
+replaceAt :: Integral i => i -> a -> [a] -> [a]
+replaceAt _ _ [] = []
+replaceAt n x xs = let n' = n `mod` genericLength xs
+                   in genericTake n' xs ++ [x] ++ genericDrop (n' + 1) xs
 
 wrappedNth :: Integral i => [a] -> i -> Maybe a
 wrappedNth [] _ = Nothing
@@ -82,3 +88,10 @@ countOccurrences as bs
 lastOrDefault :: a -> [a] -> a
 lastOrDefault x [] = x
 lastOrDefault _ xs = last xs
+
+-- We do this recursively (as opposed to using the length function) so that it can correctly
+-- terminate on infinite lists.
+padWith :: Int -> a -> [a] -> [a]
+padWith 0 _ xs     = xs
+padWith n r []     = replicate n r
+padWith n r (x:xs) = x : padWith (n - 1) r xs

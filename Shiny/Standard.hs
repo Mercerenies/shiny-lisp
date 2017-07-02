@@ -186,7 +186,13 @@ stdFuncs = fromList [
             (Var "stack-push", func stackPush),
             (Var "vv", func stackPush),
             (Var "stack-pop", func stackPop),
-            (Var "v%", func stackPop)
+            (Var "v%", func stackPop),
+            (Var "stack-peek", func stackPeek),
+            (Var "v&", func stackPeek),
+            (Var "stack-into", func stackInto),
+            (Var "v-", func stackInto),
+            (Var "stack-arrange", func stackArrange),
+            (Var "v!", func stackArrange)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1273,9 +1279,9 @@ pullOut fs = let invoke [] = error "internal error in invoke"
               in pure . BuiltIn $ userFunc t
 
 {-
- - (stack-push) - Pushes % onto #%; returns the new stack
- - (stack-push x) - Pushes x onto #%; returns the new stack
- - (stack-push x ... y) - Pushes each argument onto #%, last-to-first
+ - (stack-push) - Pushes % onto #v; returns the new stack
+ - (stack-push x) - Pushes x onto #v; returns the new stack
+ - (stack-push x ... y) - Pushes each argument onto #v, last-to-first
  - (vv) == (stack-push)
  -}
 stackPush :: Function
@@ -1287,8 +1293,8 @@ stackPush xs = do
   return $ toExpr stack'
 
 {-
- - (stack-pop) - Pops a value off #%, returning () if the stack is empty
- - (stack-pop n) - Removes the nth value from #% (0-based, wrapping around as needed)
+ - (stack-pop) - Pops a value off #v, returning () if the stack is empty
+ - (stack-pop n) - Removes the nth value from #v (0-based, wrapping around as needed)
  - (stack-pop n . m) - Ignores m
  - (v%) == (stack-pop)
  -}
@@ -1303,3 +1309,59 @@ stackPop (n:_) = do
   let n' = fromExpr n `mod` genericLength stack :: Integer
   setOrDefSymbol stackName . toExpr $ removeAt n' stack
   pure . maybe Nil id $ wrappedNth stack n'
+
+{-
+ - (stack-peek) - Returns the top value of #v, or () if empty
+ - (stack-peek n) - Returns the nth value from #v (0-based, wrapping as needed)
+ - (stack-peek n . m) - Ignores m
+ - (v&) == (stack-peek)
+ -}
+stackPeek :: Function
+stackPeek [] = maybe Nil id . flip wrappedNth (0 :: Integer) . fromExpr <$> stackValue
+stackPeek (n:_) = maybe Nil id . flip wrappedNth (fromExpr n :: Integer) . fromExpr <$> stackValue
+
+{-
+ - (stack-into) - Returns 0 (TODO This)
+ - (stack-into f) - Pops one value off the stack and calls f with that value (calls with () if needed)
+ - (stack-into n f) - Pops n values off the stack and calls f with them (padding with () where needed)
+ - (stack-into n f x ...) - Calls f with x ... and then n stack arguments
+ - (v-) == (stack-into)
+ -}
+stackInto :: Function
+stackInto [] = pure $ Number 0
+stackInto [f] = stackInto [Number 1, f]
+stackInto (n:f:xs) = do
+  stack <- fromExpr <$> stackValue
+  let (args, stack') = splitAt (fromExpr n) stack
+      args'          = padWith (fromExpr n) Nil args
+  setOrDefSymbol stackName $ toExpr stack'
+  functionCall f $ xs ++ args'
+
+{-
+ - (stack-arrange) - Swaps the top two elements of the stack
+ - (stack-arrange n) - Buries the top element n elements down, does NOT wrap, returns the old top
+ -                     (stack-arrange 1) - No-op
+ -                     (stack-arrange 2) - (stack-arrange)
+ -                     ...
+ - (stack-arrange n m) - Swaps the nth and mth stack elements; returns '(nth mth)
+ - (stack-arrange n m . x) - Ignores x (TODO Rotate all provided indices)
+ - (v!) == (stack-arrange)
+ -}
+stackArrange :: Function
+stackArrange [] = stackArrange [Number 1]
+stackArrange [n] = do
+  stack <- fromExpr <$> stackValue
+  case stack of
+    [] -> return Nil
+    (z:zs) -> do
+               setOrDefSymbol stackName . toExpr $ insertAt (fromExpr n - 1 :: Integer) z zs
+               return z
+stackArrange (n:m:_) = do
+  stack <- fromExpr <$> stackValue
+  let n'     = fromExpr n :: Integer
+      m'     = fromExpr m :: Integer
+      v1     = maybe Nil id $ wrappedNth stack n'
+      v2     = maybe Nil id $ wrappedNth stack m'
+      stack' = replaceAt n' v2 . replaceAt m' v1 $ stack
+  setOrDefSymbol stackName $ toExpr stack'
+  return $ toExpr [v1, v2]

@@ -48,7 +48,7 @@ dotDelimiterName :: Var
 dotDelimiterName = Var "#,,"
 
 stackName :: Var
-stackName = Var "#%"
+stackName = Var "#v"
 
 isImplicitlyGlobal :: Var -> Bool
 isImplicitlyGlobal (Var ('#':_)) = True
