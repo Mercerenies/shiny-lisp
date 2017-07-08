@@ -192,7 +192,9 @@ stdFuncs = fromList [
             (Var "stack-into", func stackInto),
             (Var "v-", func stackInto),
             (Var "stack-arrange", func stackArrange),
-            (Var "v!", func stackArrange)
+            (Var "v!", func stackArrange),
+            (Var "next-prime", func nextPrime),
+            (Var "px", func nextPrime)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1365,3 +1367,26 @@ stackArrange (n:m:_) = do
       stack' = replaceAt n' v2 . replaceAt m' v1 $ stack
   setOrDefSymbol stackName $ toExpr stack'
   return $ toExpr [v1, v2]
+
+-- ///// next-prime which returns the nth next (or previous, if negative) prime after/before a number
+
+{-
+ - (next-prime) - Returns the next prime after %
+ - (next-prime x) - Returns the next prime after x
+ - (next-prime x n) - Returns the nth prime after x; if n is negative then returns the nth prime
+ -                    before x
+ -                    (next-prime x 0) == x
+ - (next-prime x n ... m) - Returns a list of each indexed prime
+ - (next-prime) == (px)
+ -}
+nextPrime :: Function
+nextPrime [] = implicitValue >>= \x -> nextPrime [x]
+nextPrime [x] = nextPrime [x, Number 1]
+nextPrime (x:ns) = let xs = map (expressed $ \n -> nthNext (fromExpr x) (signum n) (abs n)) ns
+                   in return $ case xs of
+                                 [x'] -> x'
+                                 xs'  -> toExpr xs'
+    where nthNext :: Integer -> Integer -> Integer -> Integer
+          nthNext y _  0 | isPrime y = y
+          nthNext y dy n | isPrime y = nthNext (y + dy) dy (n - 1)
+          nthNext y dy n             = nthNext (y + dy) dy n
