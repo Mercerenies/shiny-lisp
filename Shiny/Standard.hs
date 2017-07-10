@@ -1297,7 +1297,7 @@ stackPush xs = do
 {-
  - (stack-pop) - Pops a value off #v, returning () if the stack is empty
  - (stack-pop n) - Removes the nth value from #v (0-based, wrapping around as needed)
- - (stack-pop n . m) - Ignores m
+ - (stack-pop n . m) - Pops each value in order and returns a list
  - (v%) == (stack-pop)
  -}
 stackPop :: Function
@@ -1306,21 +1306,26 @@ stackPop [] = do
   case stack of
     []     -> return Nil
     (s:ss) -> s <$ setOrDefSymbol stackName (toExpr ss)
-stackPop (n:_) = do
+stackPop [n] = do
   stack <- fromExpr <$> stackValue
-  let n' = fromExpr n `mod` genericLength stack :: Integer
-  setOrDefSymbol stackName . toExpr $ removeAt n' stack
-  pure . maybe Nil id $ wrappedNth stack n'
+  case stack of
+    [] -> return Nil
+    _  -> do
+      let n' = fromExpr n `mod` genericLength stack :: Integer
+      setOrDefSymbol stackName . toExpr $ removeAt n' stack
+      pure . maybe Nil id $ wrappedNth stack n'
+stackPop ns = toExpr <$> mapM (\n -> stackPop [n]) ns
 
 {-
  - (stack-peek) - Returns the top value of #v, or () if empty
  - (stack-peek n) - Returns the nth value from #v (0-based, wrapping as needed)
- - (stack-peek n . m) - Ignores m
+ - (stack-peek n . m) - Peeks each value and returns a list
  - (v&) == (stack-peek)
  -}
 stackPeek :: Function
-stackPeek [] = maybe Nil id . flip wrappedNth (0 :: Integer) . fromExpr <$> stackValue
-stackPeek (n:_) = maybe Nil id . flip wrappedNth (fromExpr n :: Integer) . fromExpr <$> stackValue
+stackPeek []  = maybe Nil id . flip wrappedNth (0 :: Integer) . fromExpr <$> stackValue
+stackPeek [n] = maybe Nil id . flip wrappedNth (fromExpr n :: Integer) . fromExpr <$> stackValue
+stackPeek ns  = toExpr <$> mapM (\n -> stackPeek [n]) ns
 
 {-
  - (stack-into) - Returns 0 (TODO This)
@@ -1358,17 +1363,13 @@ stackArrange [n] = do
     (z:zs) -> do
                setOrDefSymbol stackName . toExpr $ insertAt (fromExpr n - 1 :: Integer) z zs
                return z
-stackArrange (n:m:_) = do
+stackArrange ns = do
   stack <- fromExpr <$> stackValue
-  let n'     = fromExpr n :: Integer
-      m'     = fromExpr m :: Integer
-      v1     = maybe Nil id $ wrappedNth stack n'
-      v2     = maybe Nil id $ wrappedNth stack m'
-      stack' = replaceAt n' v2 . replaceAt m' v1 $ stack
+  let ns'    = map fromExpr ns :: [Integer]
+      vs     = map (maybe Nil id . wrappedNth stack) ns'
+      stack' = foldl (\acc (v, n) -> replaceAt n v acc) stack . zip vs $ rotateList 1 ns'
   setOrDefSymbol stackName $ toExpr stack'
-  return $ toExpr [v1, v2]
-
--- ///// next-prime which returns the nth next (or previous, if negative) prime after/before a number
+  return $ toExpr vs
 
 {-
  - (next-prime) - Returns the next prime after %

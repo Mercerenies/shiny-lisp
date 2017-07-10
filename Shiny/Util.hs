@@ -2,7 +2,7 @@
 module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, replaceAt,
                   wrappedNth, takeWhileM,
                   rotateChar, chr', replaceString, replaceStringM, countOccurrences,
-                  lastOrDefault, padWith) where
+                  lastOrDefault, padWith, rotateList) where
 
 import Data.Char
 import Data.List
@@ -95,3 +95,6 @@ padWith :: Int -> a -> [a] -> [a]
 padWith 0 _ xs     = xs
 padWith n r []     = replicate n r
 padWith n r (x:xs) = x : padWith (n - 1) r xs
+
+rotateList :: Int -> [a] -> [a]
+rotateList n xs = let (a, b) = splitAt n xs in b ++ a
