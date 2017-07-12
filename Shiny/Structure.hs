@@ -218,11 +218,12 @@ expressedM f = fmap toExpr . f . fromExpr
 eql :: Expr -> Expr -> Bool
 eql Nil Nil = True
 eql (Cons x y) (Cons x' y') = x `eql` x' && y `eql` y'
-eql (Atom s) (Atom s') = s == s'
 eql (String s) (String s') = s == s'
 eql (Number x) (Number x') = x == x'
 eql (Regex s) s' = eql (String s) s'
 eql s (Regex s') = eql s (String s')
+eql (Atom s) s' = eql (String s) s'
+eql s (Atom s') = eql s (String s')
 eql _ _ = False
 
 bindArgs :: [Expr] -> Symbols Expr ()
