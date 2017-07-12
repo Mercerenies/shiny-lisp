@@ -102,6 +102,7 @@ capsAtom = (Atom . map toLowerCase) <$> ((:) <$> upper <*> many lower)
 upper :: Parser Char
 upper = upperChar
 
+-- TODO Any character here, not just upperChar? So that backslash can escape other special chars?
 lower :: Parser Char
 lower = lowerChar <|> backslashChar
     where backslashChar = try $ char '\\' *> upperChar
