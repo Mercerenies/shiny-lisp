@@ -222,7 +222,7 @@ eql (Atom s) (Atom s') = s == s'
 eql (String s) (String s') = s == s'
 eql (Number x) (Number x') = x == x'
 eql (Regex s) s' = eql (String s) s'
-eql s (Regex s') = eql s (Regex s')
+eql s (Regex s') = eql s (String s')
 eql _ _ = False
 
 bindArgs :: [Expr] -> Symbols Expr ()
