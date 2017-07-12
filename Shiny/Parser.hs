@@ -51,7 +51,7 @@ rawStringLit = try (string "[[") *> (Regex <$> rest) <* try (string "]]")
           rest = contents <|> pure []
 
 numberLit :: Parser Expr
-numberLit = do
+numberLit = try $ do
   sign <- option 1 (-1 <$ char '\\')
   value <- try Number.nat
   return . Number $ sign * value
@@ -100,10 +100,17 @@ capsAtom :: Parser Expr
 capsAtom = (Atom . map toLowerCase) <$> ((:) <$> upper <*> many lower)
 
 upper :: Parser Char
-upper = oneOf upperCase
+upper = upperChar
 
 lower :: Parser Char
-lower = noneOf $ upperCase ++ special
+lower = lowerChar <|> backslashChar
+    where backslashChar = try $ char '\\' *> upperChar
+
+upperChar :: Parser Char
+upperChar = oneOf upperCase
+
+lowerChar :: Parser Char
+lowerChar = noneOf $ upperCase ++ special
 
 special :: [Char]
 special = ":()\"' \t\n\r1234567890.[]{}~\\"
