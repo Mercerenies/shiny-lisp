@@ -1351,7 +1351,7 @@ stackInto (n:f:xs) = do
  -                     (stack-arrange 2) - (stack-arrange)
  -                     ...
  - (stack-arrange n m) - Swaps the nth and mth stack elements; returns '(nth mth)
- - (stack-arrange n m . x) - Ignores x (TODO Rotate all provided indices)
+ - (stack-arrange n m . x) - Rotates the nth, mth, ... stack elements
  - (v!) == (stack-arrange)
  -}
 stackArrange :: Function
