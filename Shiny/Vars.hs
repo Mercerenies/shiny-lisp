@@ -6,8 +6,6 @@ module Shiny.Vars(Var(..),
                   implicitName, delimiterName, dotDelimiterName, stackName,
                   isImplicitlyGlobal) where
 
--- TODO Unicode capitalization support
-
 newtype Var = Var { getVar :: String }
     deriving (Show, Read, Eq, Ord)
 

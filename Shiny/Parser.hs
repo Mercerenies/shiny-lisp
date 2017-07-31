@@ -108,10 +108,10 @@ lower = lowerChar <|> backslashChar
     where backslashChar = try $ char '\\' *> upperChar
 
 upperChar :: Parser Char
-upperChar = oneOf upperCase
+upperChar = satisfy isUpperCase
 
 lowerChar :: Parser Char
-lowerChar = noneOf $ upperCase ++ special
+lowerChar = satisfy (\x -> isLowerCase x && not (x `elem` special))
 
 special :: [Char]
 special = ":()\"' \t\n\r1234567890.[]{}~\\"
