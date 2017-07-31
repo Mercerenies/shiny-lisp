@@ -11,7 +11,6 @@ import Data.Function
 import Control.Monad
 import Control.Monad.IO.Class
 import System.Exit
-import System.IO
 import System.Environment
 import Shiny.Structure
 import Shiny.Parser
@@ -194,7 +193,10 @@ stdFuncs = fromList [
             (Var "stack-arrange", func stackArrange),
             (Var "v!", func stackArrange),
             (Var "next-prime", func nextPrime),
-            (Var "px", func nextPrime)
+            (Var "px", func nextPrime),
+            (Var "eof", func isAtEOF),
+            (Var "gets-all", func getsAll),
+            (Var "ga", func getsAll)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1029,8 +1031,8 @@ sumDigits xs = let digits :: Integer -> [Integer]
  - (ge) == (gets)
  -}
 gets :: Function
-gets [] = toExpr <$> liftIO getLine
-gets [n] = liftIO . fmap (toExpr . map toExpr) $ replicateM (fromExpr n) getLine
+gets [] = maybe Nil toExpr <$> liftIO getLineChecked
+gets [n] = liftIO . fmap (toExpr . map (maybe Nil toExpr)) $ replicateM (fromExpr n) getLineChecked
 gets (n:_) = gets [n]
 
 {-
@@ -1049,7 +1051,7 @@ interaction xs = do
              Nothing -> Nil
              Just z -> z
     where loop = do
-            done <- liftIO isEOF
+            done <- liftIO stdinIsEOF
             if done then
                 return Nothing
             else do
@@ -1060,7 +1062,7 @@ interaction xs = do
               case percent of
                 Nothing -> pure ()
                 Just x -> userPrint x >>= liftIO . putStrLn
-              done1 <- liftIO isEOF
+              done1 <- liftIO stdinIsEOF
               if done1 then
                   return $ Just val
               else
@@ -1392,3 +1394,19 @@ nextPrime (x:ns) = let ns' = map (expressed $ \n -> if n == 0 then 1 :: Integer 
           nthNext y _  0 | isPrime y = y
           nthNext y dy n | isPrime y = nthNext (y + dy) dy (n - 1)
           nthNext y dy n             = nthNext (y + dy) dy n
+
+{-
+ - (eof) - Returns whether STDIN has been exhausted
+ - (eof . x) - Ignores its arguments (TODO This, maybe?)
+ - TODO Make this always return false if we're in the interactive interpreter
+ -}
+isAtEOF :: Function
+isAtEOF _ = toExpr <$> liftIO stdinIsEOF
+
+{-
+ - (gets-all) - Returns all of STDIN
+ - (gets-all . x) - Ignores its arguments (TODO This, maybe?)
+ - (gets-all) == (ga)
+ -}
+getsAll :: Function
+getsAll _ = toExpr <$> liftIO getContents

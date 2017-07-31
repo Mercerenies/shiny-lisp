@@ -2,11 +2,12 @@
 module Shiny.Util(sortByM, isPrime, unintercalate, insertAt, removeAt, replaceAt,
                   wrappedNth, takeWhileM,
                   rotateChar, chr', replaceString, replaceStringM, countOccurrences,
-                  lastOrDefault, padWith, rotateList) where
+                  lastOrDefault, padWith, rotateList, stdinIsEOF, getLineChecked) where
 
 import Data.Char
 import Data.List
 import Control.Monad
+import System.IO
 
 sortByM :: Monad m => (a -> a -> m Ordering) -> [a] -> m [a]
 sortByM _ [] = pure []
@@ -98,3 +99,19 @@ padWith n r (x:xs) = x : padWith (n - 1) r xs
 
 rotateList :: Int -> [a] -> [a]
 rotateList n xs = let (a, b) = splitAt n xs in b ++ a
+
+stdinIsEOF :: IO Bool
+stdinIsEOF = do
+  closed <- hIsClosed stdin
+  if closed then
+      return True
+  else
+      hIsEOF stdin
+
+getLineChecked :: IO (Maybe String)
+getLineChecked = do
+  done <- stdinIsEOF
+  if done then
+      return Nothing
+  else
+      Just <$> getLine
