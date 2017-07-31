@@ -51,8 +51,6 @@ toVar _ = Nothing
 toVars :: [Expr] -> [Var]
 toVars = catMaybes . map toVar
 
--- TODO #<BuiltIn> prints even if its a higher-order function outputted from (compose), etc.
-
 -- Converts to a user-friendly string, while the Show instance converts to a Haskell-friendly string
 printable :: Expr -> String
 printable Nil = "()"
@@ -65,7 +63,7 @@ printable (String s) = "\"" ++ concatMap escaped s ++ "\""
 printable (Number x) = let sign = if x < 0 then "\\" else ""
                        in sign ++ show (abs x)
 printable (Regex s) = "[[" ++ s ++ "]]"
-printable (BuiltIn _) = "#<BuiltIn>"
+printable (BuiltIn f) = if isBuiltIn f then "#<BuiltIn>" else "#<Function>"
 printable (Special _) = "#<Special>"
 
 true :: Expr

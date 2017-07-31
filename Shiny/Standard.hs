@@ -618,7 +618,7 @@ idFunc (x:_) = pure x
  - (,) == (compose)
  -}
 compose :: Function
-compose = pure . func . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFunc
+compose = pure . BuiltIn . userFunc . foldr (\f g xs -> g xs >>= (functionCall f . pure)) idFunc
 
 {-
  - (sort) - Returns the list (1..10)
