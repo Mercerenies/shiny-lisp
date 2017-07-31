@@ -1355,7 +1355,7 @@ stackInto (n:f:xs) = do
  - (v!) == (stack-arrange)
  -}
 stackArrange :: Function
-stackArrange [] = stackArrange [Number 1]
+stackArrange [] = stackArrange [Number 2]
 stackArrange [n] = do
   stack <- fromExpr <$> stackValue
   case stack of
