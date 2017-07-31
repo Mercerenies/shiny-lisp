@@ -17,4 +17,4 @@ If you have a chain of identifiers or literals, it will be split off at any capi
     +F[i +=X0 0 +=X1 1(p F:MX1 F:MX2)]
     +F'I:C,X2~X:P(f:MX1):F:MX2
 
-This language is a work-in-progress. I will write up a wiki when it gets a bit further along.
+Please see the wiki for details and a guide to getting started with the language.
