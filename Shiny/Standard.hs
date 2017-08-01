@@ -20,6 +20,7 @@ import Shiny.Vars
 import Shiny.Special
 import Shiny.Util
 import Shiny.Greek
+import Shiny.Concept
 import qualified Shiny.Case as ShinyCase
 import Text.Regex.TDFA hiding (matchCount)
 
@@ -342,20 +343,6 @@ pairs [] = []
 pairs [_] = []
 pairs (x:y:ys) = (x, y) : pairs (y:ys)
 
-sequential :: [Expr] -> Func
-sequential xs = userFunc helper
-    where helper :: Function
-          helper [] = helper [Number 0]
-          helper (n:_) = let n' = fromExpr n :: Integer
-                         in pure $ xs `genericIndex` n'
-
-sequential' :: [Expr] -> Func
-sequential' xs = userFunc helper
-    where helper :: Function
-          helper [] = helper [Number 1]
-          helper (n:_) = let n' = fromExpr n :: Integer
-                         in pure . toExpr $ genericTake n' xs
-
 {-
  - (sq) - Returns (sq 0)
  - (sq 0) - Returns the fibonacci sequence (0 1 1 2 3 ...)
@@ -381,7 +368,7 @@ sequenceExpr (n:ss) = do
       primes = map Number . filter isPrime $ [2..]
       nada = repeat Nil
   let n' = fromExpr n :: Integer
-      f = pure . BuiltIn . if null ss then sequential else sequential'
+      f = pure . if null ss then toExpr . seqFromList else toExpr . pseqFromList
   case n' of
     0 -> f $ fibo 0 1
     1 -> f $ twon
@@ -945,10 +932,9 @@ twoCurry (f:xs) = twoCurry [f] >>= \f' -> functionCall f' xs
  -}
 seqWhile :: Function
 seqWhile [] = pure $ Number 0
-seqWhile [xs] = fmap toExpr $ sequence [functionCall xs [Number n] | n <- [0..99]]
+seqWhile [xs] = expressedM (seqTake 100) xs
 seqWhile (xs : fs) = let cond x = fmap and $ mapM (\f -> fromExpr <$> functionCall f [x]) fs
-                         stream = [functionCall xs [Number n] | n <- [0..]]
-                     in toExpr <$> (join . fmap sequence $ takeWhileM (>>= cond) stream)
+                     in expressedM (seqTakeWhile cond) xs
 
 {-
  - (print-greek) - Returns 0 (TODO Change this)

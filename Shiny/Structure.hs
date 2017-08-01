@@ -165,6 +165,11 @@ coerceToList Nil = []
 coerceToList (Cons x y) = x : coerceToList y
 coerceToList z = [z]
 
+coerceToFunc :: Expr -> Function
+coerceToFunc (BuiltIn f) = runFunc f
+coerceToFunc (Special f) = runFunc f
+coerceToFunc          x  = const $ pure x
+
 class FromExpr a where
     fromExpr :: Expr -> a
 
@@ -189,6 +194,9 @@ instance FromExpr Bool where
 instance FromExpr [Expr] where
     fromExpr = coerceToList
 
+instance FromExpr Function where
+    fromExpr = coerceToFunc
+
 instance ToExpr Expr where
     toExpr = id
 
@@ -206,6 +214,9 @@ instance ToExpr Bool where
 
 instance ToExpr [Expr] where
     toExpr = exprFromList
+
+instance ToExpr Function where
+    toExpr = BuiltIn . userFunc
 
 expressed :: (FromExpr a, ToExpr b) => (a -> b) -> Expr -> Expr
 expressed f = toExpr . f . fromExpr
