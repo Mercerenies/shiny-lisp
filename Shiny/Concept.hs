@@ -10,6 +10,9 @@ import Control.Monad
 
 -- The Sequence Concept --
 
+-- (seq) ==> (seq 0)
+-- (seq n) ==> The nth element of the sequence
+
 newtype Sequence = Sequence Function
 
 instance FromExpr Sequence where
@@ -26,8 +29,11 @@ smap' f (Sequence g) = Sequence $ \x -> f <$> g x
 
 seqFromList :: [Expr] -> Sequence
 seqFromList xs = Sequence f
-    where f []    = f [Number 0]
-          f (n:_) = pure $ xs `genericIndex` (fromExpr n :: Integer)
+    where protect n = case (fromExpr n :: Integer) of
+                        n' | n' < 0    -> 0
+                           | otherwise -> n'
+          f []    = f [Number 0]
+          f (n:_) = pure $ xs `genericIndex` protect n
 
 seqTake :: Integer -> Sequence -> Symbols Expr [Expr]
 seqTake n (Sequence f) = sequence [f [Number i] | i <- [0..n-1]]
@@ -37,6 +43,9 @@ seqTakeWhile p (Sequence f) = let stream = [f [Number n] | n <- [0..]]
                               in join . fmap sequence . takeWhileM (>>= p) $ stream
 
 -- The Prefix Sequence Concept --
+
+-- (pseq) ==> (pseq 1)
+-- (pseq n) ==> The first n elements of the sequence, as a list
 
 newtype PSequence = PSequence Function
 
@@ -54,5 +63,9 @@ psmap' f (PSequence g) = PSequence $ \x -> expressed (map f) <$> g x
 
 pseqFromList :: [Expr] -> PSequence
 pseqFromList xs = PSequence f
-    where f []    = f [Number 1]
-          f (n:_) = pure . toExpr $ genericTake (fromExpr n :: Integer) xs
+    where protect n = case (fromExpr n :: Integer) of
+                        n' | n' < 0    -> 0
+                           | otherwise -> n'
+          f []    = f [Number 1]
+          f (n:_) = pure . toExpr $ genericTake (protect n) xs
+
