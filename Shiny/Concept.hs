@@ -69,3 +69,9 @@ pseqFromList xs = PSequence f
           f []    = f [Number 1]
           f (n:_) = pure . toExpr $ genericTake (protect n) xs
 
+-- The Grid Concept --
+
+-- (grd) ==> (width height)
+-- (grd nm) ==> The (nth, mth) element
+
+/////
