@@ -1224,7 +1224,7 @@ primeFactors (p:_) = let p' :: Integer
  -}
 primeFactors' :: Function
 primeFactors' [] = pure $ Number 0
-primeFactors' (p:_) = pure . toExpr . map toExpr $ helper (p' `div` 2) p' []
+primeFactors' (p:_) = pure . toExpr . map toExpr $ helper p' p' []
     where p' :: Integer
           p' = abs $ fromExpr p
           helper r n acc
