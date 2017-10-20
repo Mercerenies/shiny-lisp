@@ -1,6 +1,8 @@
 
 module Shiny.Concept(Sequence(), smap, smap', seqFromList, seqTake, seqTakeWhile,
-                     PSequence(), psmap, psmap', pseqFromList) where
+                     PSequence(), psmap, psmap', pseqFromList,
+                     Grid, gridmap, gridmap', gridDims, functionGrid, constGrid,
+                     gridGet, gridPut) where
 
 import Shiny.Structure
 import Shiny.Symbol
@@ -74,4 +76,47 @@ pseqFromList xs = PSequence f
 -- (grd) ==> (width height)
 -- (grd nm) ==> The (nth, mth) element
 
--- /////
+-- NOTE: Grids are always indexed using 0-based row-major indices
+-- NOTE: For out-of-bounds indices, () should be returned
+
+newtype Grid = Grid Function
+
+instance FromExpr Grid where
+    fromExpr = Grid . fromExpr
+
+instance ToExpr Grid where
+    toExpr (Grid x) = toExpr x
+
+gridmap :: (FromExpr a, ToExpr b) => (a -> b) -> Grid -> Grid
+gridmap f = gridmap' (expressed f)
+
+gridmap' :: (Expr -> Expr) -> Grid -> Grid
+gridmap' f (Grid g) = Grid $ \x -> f <$> g x
+
+gridDims :: Grid -> Symbols Expr (Int, Int)
+gridDims (Grid g) = helper . fromExpr <$> g []
+    where helper [w, h] = (fromExpr w, fromExpr h)
+          helper _ = (0, 0)
+
+functionGrid :: (Int, Int) -> ((Int, Int) -> Expr) -> Grid
+functionGrid (h, w) f = Grid $ return . g
+    where g [] = toExpr [toExpr h, toExpr w]
+          g (r:c:_) = f (fromExpr r, fromExpr c)
+          g _ = Nil
+
+constGrid :: (Int, Int) -> Expr -> Grid
+constGrid (h, w) expr = functionGrid (h, w) g
+    where g (r, c)
+              | r < 0 || r >= h = Nil
+              | c < 0 || c >= w = Nil
+              | otherwise       = expr
+
+gridGet :: Grid -> (Int, Int) -> Symbols Expr Expr
+gridGet (Grid g) (n, m) = g [toExpr list]
+    where list = [toExpr n, toExpr m]
+
+gridPut :: (Int, Int) -> Expr -> Grid -> Grid
+gridPut (n, m) expr (Grid g) = Grid g'
+    where g' (r:c:_)
+              | fromExpr r == n && fromExpr c == m = pure expr
+          g' xs = g xs
