@@ -86,6 +86,7 @@ stdFuncs = fromList [
             (Var "range", nFunc 1337 rangeExpr),
             (Var "rg", nFunc 1337 rangeExpr),
             (Var "quit", func quitProg),
+            (Var "qx", func quitProg),
             (Var "cons", func consExpr),
             (Var "c", func consExpr),
             (Var "bitand", nFunc (-1) andExpr),
@@ -197,7 +198,11 @@ stdFuncs = fromList [
             (Var "px", func nextPrime),
             (Var "eof", func isAtEOF),
             (Var "gets-all", func getsAll),
-            (Var "ga", func getsAll)
+            (Var "ga", func getsAll),
+            (Var "count", func countUp),
+            (Var "ct", func countUp),
+            (Var "loop", func' loopOn),
+            (Var "-*", func' loopOn)
            ]
 
 stdValues :: SymbolTable Expr
@@ -516,6 +521,7 @@ rangeExpr xs = pure . toExpr . map Number . rangeHelper $ map fromExpr xs
 
 {-
  - (quit . xs) - Abort the program immediately
+ - (quit) == (qx)
  -}
 quitProg :: Function
 quitProg _ = liftIO exitSuccess
@@ -1396,3 +1402,34 @@ isAtEOF _ = toExpr <$> liftIO stdinIsEOF
  -}
 getsAll :: Function
 getsAll _ = toExpr <$> liftIO getContents
+
+{-
+ - (count) - Returns a sequence starting from 0 and counting up by 1
+ - (count n) - Returns a sequence starting from n and counting up by 1
+ - (count n dn) - Returns a sequence starting from n and counting by dn
+ - (count) == (ct)
+ -}
+countUp :: Function
+countUp [] = countUp [Number 0, Number 1]
+countUp [n] = countUp [n, Number 1]
+countUp (n : dn : _) = let n'  = fromExpr n  :: Integer
+                           dn' = fromExpr dn :: Integer
+                       in pure . toExpr . seqFromList . map toExpr $ iterate (+ dn') n'
+
+{-
+ - (loop) - Returns 0 (TODO This)
+ - (loop arg . forms) - Runs the body, with % bound to each variable from the sequence arg
+ - (loop) == (-*)
+ -}
+loopOn :: Function
+loopOn [] = pure $ Number 0
+loopOn (arg : xs) = do
+  arg' <- evaluate arg
+  loop arg' [0..]
+    where loop :: Expr -> [Integer] -> Symbols Expr a
+          loop _  []     = error "loopOn internal error"
+          loop sq (y:ys) = do
+                      y' <- functionCall sq [toExpr y]
+                      setOrDefSymbol implicitName y'
+                      _ <- evalSeq xs
+                      loop sq ys
