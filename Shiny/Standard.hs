@@ -24,6 +24,8 @@ import Shiny.Concept
 import qualified Shiny.Case as ShinyCase
 import Text.Regex.TDFA hiding (matchCount)
 
+import Control.Monad.State(get)
+
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
  -}
@@ -202,7 +204,11 @@ stdFuncs = fromList [
             (Var "count", func countUp),
             (Var "ct", func countUp),
             (Var "loop", func' loopOn),
-            (Var "-*", func' loopOn)
+            (Var "-*", func' loopOn),
+            (Var "map-sequence", func mapSeq),
+            (Var "ms", func mapSeq),
+            (Var "loop-out", func breakLoop),
+            (Var "l%", func breakLoop)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1054,11 +1060,15 @@ interaction xs = do
               case percent of
                 Nothing -> pure ()
                 Just x -> userPrint x >>= liftIO . putStrLn
-              done1 <- liftIO stdinIsEOF
-              if done1 then
+              test <- fromExpr <$> loopContinueValue
+              if not test then
                   return $ Just val
-              else
-                  loop
+              else do
+                done1 <- liftIO stdinIsEOF
+                if done1 then
+                    return $ Just val
+                else
+                    loop
 
 {-
  - (print) - Prints %
@@ -1426,10 +1436,44 @@ loopOn [] = pure $ Number 0
 loopOn (arg : xs) = do
   arg' <- evaluate arg
   loop arg' [0..]
-    where loop :: Expr -> [Integer] -> Symbols Expr a
+  return Nil
+    where loop :: Expr -> [Integer] -> Symbols Expr ()
           loop _  []     = error "loopOn internal error"
           loop sq (y:ys) = do
                       y' <- functionCall sq [toExpr y]
                       setOrDefSymbol implicitName y'
                       _ <- evalSeq xs
-                      loop sq ys
+                      test <- fromExpr <$> loopContinueValue
+                      when test $
+                           loop sq ys
+
+{-
+ - (map-sequence) - Returns 0 (TODO This)
+ - ((map-sequence f . ss) . xs) - Zips the infinite sequences with finite lists and calls f
+ - (map-sequence) == (ms)
+ -}
+mapSeq :: Function
+mapSeq [] = pure $ Number 0
+mapSeq (f : ss) = pure . BuiltIn $ userFunc (fmap toExpr . helper 0 . map fromExpr)
+    where helper n xss
+              | any null xss = pure []
+              | otherwise   = do
+            let xs   = map head xss
+                xss' = map tail xss
+            ss' <- mapM (\s -> functionCall s [Number n]) ss
+            z <- functionCall f (ss' ++ xs)
+            zs <- helper (n + 1) xss'
+            return $ z : zs
+
+{-
+ - (loop-out) - Inverts the loop continue value
+ - (loop-out) == (l%)
+ -}
+breakLoop :: Function
+breakLoop _ = loopContinueValue >>=
+              setOrDefSymbol loopContinueName . throughBool >>
+              pure Nil
+    where throughBool = expressed not
+
+-- ///// (= f [(- (loop-out)) 3])
+-- Loops are going wrong and clearing the call stack >.<

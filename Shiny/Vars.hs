@@ -4,6 +4,7 @@ module Shiny.Vars(Var(..),
                   reArgumentNames, reArgListName, reArgumentBindings,
                   reFullName,
                   implicitName, delimiterName, dotDelimiterName, stackName,
+                  loopContinueName,
                   isImplicitlyGlobal) where
 
 newtype Var = Var { getVar :: String }
@@ -47,6 +48,9 @@ dotDelimiterName = Var "#,,"
 
 stackName :: Var
 stackName = Var "#v"
+
+loopContinueName :: Var
+loopContinueName = Var "&&l"
 
 isImplicitlyGlobal :: Var -> Bool
 isImplicitlyGlobal (Var ('#':_)) = True

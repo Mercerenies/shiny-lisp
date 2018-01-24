@@ -1,6 +1,7 @@
 
 module Shiny.Special(argListValue, implicitValue,
                      delimiterValue, dotDelimiterValue, stackValue,
+                     loopContinueValue,
                      userPrint) where
 
 import Shiny.Vars
@@ -18,6 +19,9 @@ delimiterValue = getSymbolOrDefault delimiterName (String " ")
 
 dotDelimiterValue :: Symbols Expr Expr
 dotDelimiterValue = getSymbolOrDefault dotDelimiterName (String " . ")
+
+loopContinueValue :: Symbols Expr Expr
+loopContinueValue = getSymbolOrDefault loopContinueName true
 
 stackValue :: Symbols Expr Expr
 stackValue = getSymbolOrDefault stackName Nil
