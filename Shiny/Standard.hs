@@ -24,8 +24,6 @@ import Shiny.Concept
 import qualified Shiny.Case as ShinyCase
 import Text.Regex.TDFA hiding (matchCount)
 
-import Control.Monad.State(get)
-
 {-
  - NOTE: The result is UNDEFINED if a special form (like 'cond, for instance) is passed as a first-class function
  -}
@@ -204,11 +202,11 @@ stdFuncs = fromList [
             (Var "count", func countUp),
             (Var "ct", func countUp),
             (Var "loop", func' loopOn),
-            (Var "-*", func' loopOn),
+            (Var "-&", func' loopOn),
             (Var "map-sequence", func mapSeq),
-            (Var "ms", func mapSeq),
-            (Var "loop-out", func breakLoop),
-            (Var "l%", func breakLoop)
+            (Var "ms", func mapSeq)--,
+--            (Var "loop-out", func breakLoop),
+--            (Var "l%", func breakLoop)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1429,7 +1427,7 @@ countUp (n : dn : _) = let n'  = fromExpr n  :: Integer
 {-
  - (loop) - Returns 0 (TODO This)
  - (loop arg . forms) - Runs the body, with % bound to each variable from the sequence arg
- - (loop) == (-*)
+ - (loop) == (-&)
  -}
 loopOn :: Function
 loopOn [] = pure $ Number 0
@@ -1477,3 +1475,4 @@ breakLoop _ = loopContinueValue >>=
 
 -- ///// (= f [(- (loop-out)) 3])
 -- Loops are going wrong and clearing the call stack >.<
+
