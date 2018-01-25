@@ -204,9 +204,9 @@ stdFuncs = fromList [
             (Var "loop", func' loopOn),
             (Var "-&", func' loopOn),
             (Var "map-sequence", func mapSeq),
-            (Var "ms", func mapSeq)--,
---            (Var "loop-out", func breakLoop),
---            (Var "l%", func breakLoop)
+            (Var "ms", func mapSeq),
+            (Var "loop-out", func breakLoop),
+            (Var "l%", func breakLoop)
            ]
 
 stdValues :: SymbolTable Expr
@@ -1475,4 +1475,3 @@ breakLoop _ = loopContinueValue >>=
 
 -- ///// (= f [(- (loop-out)) 3])
 -- Loops are going wrong and clearing the call stack >.<
-

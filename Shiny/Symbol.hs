@@ -70,7 +70,7 @@ undefSymbol v = get >>= helper >>= put
     where helper [] = throwS "variable does not exist"
           helper (x:xs)
               | Map.member v x = pure $ Map.delete v x : xs
-              | otherwise = helper xs
+              | otherwise = (x :) <$> helper xs
 
 getSymbolOrDefault :: Var -> e -> Symbols e e
 getSymbolOrDefault v def = do
