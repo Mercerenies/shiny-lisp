@@ -354,7 +354,7 @@ pairs (x:y:ys) = (x, y) : pairs (y:ys)
 
 {-
  - (sq) - Returns (sq 0)
- - (sq 0) - Returns the fibonacci sequence (0 1 1 2 3 ...)
+ - (sq 0) - Returns the Fibonacci sequence (0 1 1 2 3 ...)
  - (sq 1) - Returns the 2^n sequence (1 2 4 8 16 32 ...)
  - (sq 2) - Returns the identity sequence (0 1 2 3 4 5 ...)
  - (sq 3) - Returns the primes (2 3 5 7 11 ...)
@@ -1226,7 +1226,7 @@ primeFactors :: Function
 primeFactors [] = pure $ Number 0
 primeFactors (p:_) = let p' :: Integer
                          p' = abs $ fromExpr p
-                         factors = filter (\x -> p' `mod` x == 0 && isPrime x) [2 .. p' `div` 2]
+                         factors = filter (\x -> p' `mod` x == 0 && isPrime x) (p' : [2 .. p' `div` 2])
                      in pure . toExpr . map toExpr $ factors
 
 {-
@@ -1472,6 +1472,3 @@ breakLoop _ = loopContinueValue >>=
               setOrDefSymbol loopContinueName . throughBool >>
               pure Nil
     where throughBool = expressed not
-
--- ///// (= f [(- (loop-out)) 3])
--- Loops are going wrong and clearing the call stack >.<
