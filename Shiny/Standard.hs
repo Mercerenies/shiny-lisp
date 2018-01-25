@@ -1418,7 +1418,7 @@ getsAll _ = toExpr <$> liftIO getContents
  - (count) == (ct)
  -}
 countUp :: Function
-countUp [] = countUp [Number 0, Number 1]
+countUp [] = countUp [Number 1, Number 1]
 countUp [n] = countUp [n, Number 1]
 countUp (n : dn : _) = let n'  = fromExpr n  :: Integer
                            dn' = fromExpr dn :: Integer
