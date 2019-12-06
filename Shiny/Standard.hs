@@ -1385,13 +1385,13 @@ stackArrange ns = do
 nextPrime :: Function
 nextPrime [] = implicitValue >>= \x -> nextPrime [x]
 nextPrime [x] = nextPrime [x, Number 1]
-nextPrime (x:ns) = let ns' = map (expressed $ \n -> if n == 0 then 1 :: Integer else n) ns
-                       xs = map (expressed $ \n -> nthNext (fromExpr x) (signum n) (abs n - 1)) ns'
+nextPrime (x:ns) = let xs = map (expressed $ \n -> nthNext (fromExpr x + signum n) (signum n) (abs n - 1)) ns
                    in return $ case xs of
                                  [x'] -> x'
                                  xs'  -> toExpr xs'
     where nthNext :: Integer -> Integer -> Integer -> Integer
           nthNext y _  0 | isPrime y = y
+          nthNext y 0  _             = nthNext y 1 0
           nthNext y dy n | isPrime y = nthNext (y + dy) dy (n - 1)
           nthNext y dy n             = nthNext (y + dy) dy n
 
